@@ -36,7 +36,7 @@ Each entry in this file contains:
 
 #### Running OCR (Optional)
 
-To regenerate OCR output yourself, install `olmOCR` with GPU support:
+For the OCR, [olmOCR](https://github.com/allenai/olmocr) was used. To regenerate OCR output yourself, install `olmOCR` with GPU support:
 
 ```
 pip install olmocr[gpu] --find-links https://flashinfer.ai/whl/cu124/torch2.4/flashinfer/
@@ -45,6 +45,7 @@ pip install olmocr[gpu] --find-links https://flashinfer.ai/whl/cu124/torch2.4/fl
 Then run:
 
 ```
+python -m olmocr.pipeline cross_dataset_discovery/assets/mathe/materiald_md/ --markdown --pdfs cross_dataset_discovery/assets/mathe/materials/*.pdf
 python cross_dataset_discovery/scripts/mathe_ocr.py
 ```
 
