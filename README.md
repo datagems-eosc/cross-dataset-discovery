@@ -1,5 +1,5 @@
 # Cross-Dataset Discovery in DataGEMS
 
-This repository contains the source code for performing **cross-dataset discovery** within the DataGEMS framework. It includes tools and instructions for downloading the **MathE** and **language use-case** datasets, along with a simple preprocessing pipeline.
+This repository provides the implementation and tools for exploring **cross-dataset discovery** using the DataGEMS framework. It includes everything needed to download and preprocess the **MathE** and **language use-case** datasets, and to prepare them for compatibility with the discovery pipeline.
 
-Additionally, this repository provides a guide for preparing datasets to be compatible with the cross-dataset discovery functions, as well as example usage to help you get started quickly.
+You'll also find a simple guide for dataset preparation and example scripts demonstrating how to run discovery tasks across datasets.
