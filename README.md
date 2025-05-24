@@ -18,7 +18,7 @@ After downloading, the datasets will be located in:
 - `cross_dataset_discovery/assets/mathe/`
 - `cross_dataset_discovery/assets/language/`
 
-### MathE Dataset
+### 🧮 MathE Dataset
 
 The source documents are stored in:
 
@@ -49,7 +49,7 @@ python -m olmocr.pipeline cross_dataset_discovery/assets/mathe/materiald_md/ --m
 python cross_dataset_discovery/scripts/mathe_ocr.py
 ```
 
-### Language Use-Case Dataset
+### 🌐 Language Use-Case Dataset
 
 All documents are combined into a single unified JSON file:
 
