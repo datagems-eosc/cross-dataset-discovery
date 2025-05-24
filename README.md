@@ -85,3 +85,70 @@ After running the scripts, the benchmark files will be located at:
 
 This structure supports multilingual evaluations and cross-lingual document retrieval tasks.
 
+## 🧩 Document Chunking
+
+To enable more effective retrieval, documents can be split into smaller chunks using the `chonky` library. This helps handle long documents and improves granularity during retrieval.
+
+Run the following commands to chunk the documents:
+
+```
+python cross_dataset_discovery/scripts/perform_chunking.py \
+    cross_dataset_discovery/assets/mathe/collection/mathe_documents.json \
+    cross_dataset_discovery/assets/mathe/collection/mathe_documents_chunked.json
+
+python cross_dataset_discovery/scripts/perform_chunking.py \
+    cross_dataset_discovery/assets/language/collection/language_documents.json \
+    cross_dataset_discovery/assets/language/collection/language_documents_chunked.json
+```
+
+The resulting files:
+
+- `cross_dataset_discovery/assets/mathe/collection/mathe_documents_chunked.json`
+- `cross_dataset_discovery/assets/language/collection/language_documents_chunked.json`
+
+These are the chunked versions of the original document collections and are the expected inputs for downstream retrieval tasks.
+
+> 📦 Chunking is performed using [chonky](https://github.com/mirth/chonky), a nice framework for semantic chunking.
+
+## 🎛️  Retriever Interface
+
+The retrievers used for cross-dataset discovery follow a unified interface defined in [`cross_dataset_discovery/src/retrievers/base.py`](cross_dataset_discovery/src/retrievers/base.py). This interface ensures consistent input/output formats across different retrieval backends.
+
+### 🔄 `BaseRetriever` (Abstract Class)
+
+Every retriever must implement the following two methods:
+
+#### `index(...)`
+
+Indexes a collection of documents from a `.jsonl` file.
+
+**Arguments:**
+- `input_jsonl_path` *(str)*: Path to a JSON Lines file, where each line is a document (JSON object).
+- `output_folder` *(str)*: Directory to store the generated index files.
+- `field_to_index` *(str)*: Field from the JSON to index (e.g., `"contents"`).
+- `metadata_fields` *(List[str])*: List of fields to store as retrievable metadata.
+
+#### `retrieve(...)`
+
+Performs top-k retrieval over previously indexed data for a list of natural language queries.
+
+**Arguments:**
+- `nlqs` *(List[str])*: A list of natural language queries.
+- `output_folder` *(str)*: Path to the folder containing the index files. The actual stored files inside the output folder and their manpipulation is perfomed iternally.
+- `k` *(int)*: Number of top results to return per query.
+
+**Returns:**  
+A `List[List[RetrievalResult]]`, where each sublist contains the top-k results for one query.
+
+---
+
+### 📦 `RetrievalResult` (Data Structure)
+
+Each retrieval result is returned as a `RetrievalResult` object with the following fields:
+
+- `score` *(float)*: Relevance score assigned to the result. Depending on the retrieval, this might have different scale.
+- `object` *(str)*: The retrieved text (from the indexed field).
+- `metadata` *(Dict[str, Any])*: Dictionary containing additional fields (e.g., document ID, source, language).
+
+This structure allows easy formatting, comparison, and downstream evaluation of retrieval quality.
+
