@@ -72,7 +72,7 @@ huggingface-cli download "DARELab/cross-dataset-assets" \
 - ✅ **Language**: Chunked and serialized documents, benchmark, and indexes.
 - ⚠️ **Not Included**:
   - Raw source files for the Language use-case (due to size constraints)
-  - The `GGUF` model required for the ReAct retriever (see [ReAct section](#-core-component-indexing--retrieval))
+  - The `GGUF` model required for the ReAct retriever 
 
 This is the quickest way to get started if you don't wish to regenerate all artifacts from scratch.
 
