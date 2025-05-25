@@ -94,17 +94,17 @@ Run the following commands to chunk the documents:
 ```
 python cross_dataset_discovery/scripts/perform_chunking.py \
     cross_dataset_discovery/assets/mathe/collection/mathe_documents.json \
-    cross_dataset_discovery/assets/mathe/collection/mathe_documents_chunked.json
+    cross_dataset_discovery/assets/mathe/collection/mathe_documents_chunked.jsonl
 
 python cross_dataset_discovery/scripts/perform_chunking.py \
     cross_dataset_discovery/assets/language/collection/language_documents.json \
-    cross_dataset_discovery/assets/language/collection/language_documents_chunked.json
+    cross_dataset_discovery/assets/language/collection/language_documents_chunked.jsonl
 ```
 
 The resulting files:
 
-- `cross_dataset_discovery/assets/mathe/collection/mathe_documents_chunked.json`
-- `cross_dataset_discovery/assets/language/collection/language_documents_chunked.json`
+- `cross_dataset_discovery/assets/mathe/collection/mathe_documents_chunked.jsonl`
+- `cross_dataset_discovery/assets/language/collection/language_documents_chunked.jsonl`
 
 These are the chunked versions of the original document collections and are the expected inputs for downstream retrieval tasks.
 
@@ -116,7 +116,7 @@ These are the chunked versions of the original document collections and are the 
 > ```
 > python cross_dataset_discovery/scripts/perform_chunking_parallel.py \
 >     cross_dataset_discovery/assets/language/collection/language_documents.json \
->     cross_dataset_discovery/assets/language/collection/language_documents_chunked.json
+>     cross_dataset_discovery/assets/language/collection/language_documents_chunked.jsonl
 > ```
 
 ## 🎛️  Retriever Interface
