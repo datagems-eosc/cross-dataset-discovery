@@ -32,6 +32,7 @@ Run the following to create the virtual environment and install dependencies:
 ```bash
 make install
 ```
+> 💡 **Note:** The installed faiss version includes only CPU support. If a GPU is available, the retrieval performance can be boosted. However, installing faiss with GPU support is not straightforward and depends on the system, so it is not supported by the make install.
 
 ### 4. Activate the virtual environment
 
