@@ -110,6 +110,15 @@ These are the chunked versions of the original document collections and are the 
 
 > 📦 Chunking is performed using [chonky](https://github.com/mirth/chonky), a nice framework for semantic chunking.
 
+> ⚠️ **Note on Performance**:  
+> For the **Language Use-Case**, the dataset contains a large number of documents, so chunking can be time-consuming. To speed this up, you can use parallel processing with the following script:
+>
+> ```
+> python cross_dataset_discovery/scripts/perform_chunking_parallel.py \
+>     cross_dataset_discovery/assets/language/collection/language_documents.json \
+>     cross_dataset_discovery/assets/language/collection/language_documents_chunked.json
+> ```
+
 ## 🎛️  Retriever Interface
 
 The retrievers used for cross-dataset discovery follow a unified interface defined in [`cross_dataset_discovery/src/retrievers/base.py`](cross_dataset_discovery/src/retrievers/base.py). This interface ensures consistent input/output formats across different retrieval backends.
