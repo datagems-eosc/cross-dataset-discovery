@@ -31,7 +31,9 @@ class FaissDenseRetriever(BaseRetriever):
             model_name_or_path: The name/path of the Sentence Transformer model to use.
         """
         device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.model = SentenceTransformer(model_name_or_path, device=device)
+        self.model = SentenceTransformer(
+            model_name_or_path, device=device, trust_remote_code=True
+        )
         self.embedding_dim = self.model.get_sentence_embedding_dimension()
         self.num_gpus = torch.cuda.device_count()
 
