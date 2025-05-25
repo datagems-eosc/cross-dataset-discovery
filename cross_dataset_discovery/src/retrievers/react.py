@@ -226,7 +226,7 @@ class ReActRetriever(FaissDenseRetriever):
             return
 
         self.guidance_lm = models.LlamaCpp(
-            self.model_path, n_gpu_layers=0, n_ctx=self.llm_n_ctx, echo=False
+            self.model_path, n_gpu_layers=-1, n_ctx=self.llm_n_ctx, echo=False
         )
 
     def _format_observation(self, results: List[RetrievalResult]) -> str:
