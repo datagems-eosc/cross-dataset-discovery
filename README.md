@@ -42,6 +42,39 @@ source .venv/bin/activate
 
 You're now ready to start working with the project.
 
+## 📦 Downloading Precomputed Assets
+
+Since chunking, creating synthetic benchmark, and indexing can be time- and resource-intensive, you can skip these steps by downloading the **precomputed assets** directly from [🤗 Hugging Face Hub](https://huggingface.co/datasets/DARELab/cross-dataset-assets).
+
+This allows you to **jump straight to**:  
+➡️ [Running Example Retrievals](https://github.com/datagems-eosc/cross-dataset-discovery/blob/main/README.md#%EF%B8%8F-running-example-retrievals)
+
+### 🔽 Download Instructions
+
+First, create the `assets` folder:
+
+```bash
+mkdir -p cross_dataset_discovery/assets
+```
+
+Then download the data:
+
+```bash
+huggingface-cli download "DARELab/cross-dataset-assets" \
+  --repo-type dataset \
+  --local-dir cross_dataset_discovery/assets \
+  --local-dir-use-symlinks False
+```
+
+### 📁 What's Included
+
+- ✅ **MathE**: Full dataset, OCR results, chunked documents, benchmarks, and indexes.
+- ✅ **Language**: Chunked and serialized documents, benchmark, and indexes.
+- ⚠️ **Not Included**:
+  - Raw source files for the Language use-case (due to size constraints)
+  - The `GGUF` model required for the ReAct retriever (see [ReAct section](#-core-component-indexing--retrieval))
+
+This is the quickest way to get started if you don't wish to regenerate all artifacts from scratch.
 
 ## 📥 Downloading the Datasets
 
