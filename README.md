@@ -198,3 +198,32 @@ This model is in `GGUF` format and can be replaced with any [llama.cpp](https://
 
 If you do not wish to use the ReAct retriever, you can simply comment out the corresponding section in the example script.
 
+## ⚙️ Technical Components
+
+Below are the core components and libraries used:
+
+### 🔍 Retrieval Backends
+
+- **Dense Retrieval**:  
+  Implemented using [**FAISS**](https://github.com/facebookresearch/faiss).
+
+- **Sparse Retrieval (BM25)**:  
+  Powered by [**Pyserini**](https://github.com/castorini/pyserini), a Python interface to the Lucene-based Anserini toolkit.
+
+### 🧬 Embedding Generation
+
+- **Sentence Transformers**:  
+  Embeddings are generated using models from [**sentence-transformers**](https://huggingface.co/sentence-transformers). You can use any compatible model.  
+  The default model used is:  
+  [`Snowflake/snowflake-arctic-embed-l-v2.0`](https://huggingface.co/Snowflake/snowflake-arctic-embed-l-v2.0)
+
+### 🔁 Reranking
+
+- **Cross-Encoder Reranker**:  
+  In case of the dense retriever with reranker, the cross encoder used is: 
+  [`mixedbread-ai/mxbai-rerank-large-v2`](https://huggingface.co/mixedbread-ai/mxbai-rerank-large-v2)
+
+### 🤖 ReAct Retriever (LLM + Tool Use)
+
+- The **ReAct retriever** is built on LLM reasoning over actions (retrieve, answer).
+- It uses the [**Guidance**](https://github.com/guidance-ai/guidance) framework to constrain the language model’s output, enforcing the decoding of the predefined actions.
