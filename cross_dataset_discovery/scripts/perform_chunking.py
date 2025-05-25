@@ -8,7 +8,7 @@ def main():
     input_json_path = sys.argv[1]
     output_json_path = sys.argv[2]
 
-    chunker_instance = ChonkyChunker("mirth/chonky_distilbert_base_uncased_1")
+    chunker_instance = ChonkyChunker("mirth/chonky_modernbert_large_1")
 
     with open(input_json_path, "r", encoding="utf-8") as f_in:
         input_data = json.load(f_in)
@@ -28,7 +28,8 @@ def main():
             global_chunk_id += 1
 
     with open(output_json_path, "w", encoding="utf-8") as f_out:
-        json.dump(output_records, f_out, indent=2)
+        for record in output_records:
+            f_out.write(json.dumps(record) + "\n")
 
 
 if __name__ == "__main__":

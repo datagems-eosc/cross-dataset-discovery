@@ -54,7 +54,7 @@ def process_item(item):
 def main(
     input_path,
     output_path,
-    model_id="mirth/chonky_distilbert_base_uncased_1",
+    model_id="mmirth/chonky_modernbert_large_1",
     base_device="cuda",
     num_procs=None,
 ):
@@ -108,7 +108,7 @@ def main(
 if __name__ == "__main__":
     if len(sys.argv) < 3:
         print(
-            "Usage: python optimized_chunker_mp.py input.json[.jsonl] output.jsonl [model_id] [base_device] [num_procs]"
+            "Usage: python perform_chunking_parallel.py input.json[.jsonl] output.jsonl [model_id] [base_device] [num_procs]"
         )
         sys.exit(1)
     args = sys.argv[1:]
