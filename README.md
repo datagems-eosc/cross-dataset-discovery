@@ -11,7 +11,7 @@ Follow these steps to set up your environment.
 ### 1. Clone the repository
 
 ```bash
-git clone git@github.com:your-org/cross-dataset-discovery.git
+git clone git@github.com:datagems-eosc/cross-dataset-discovery.git
 cd cross-dataset-discovery
 ```
 
