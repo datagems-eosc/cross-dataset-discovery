@@ -4,6 +4,45 @@ This repository provides the implementation and tools for exploring **cross-data
 
 You'll also find a simple guide for dataset preparation and example scripts demonstrating how to run discovery tasks across datasets.
 
+## 🚀 Getting Started
+
+Follow these steps to set up your environment.
+
+### 1. Clone the repository
+
+```bash
+git clone git@github.com:your-org/cross-dataset-discovery.git
+cd cross-dataset-discovery
+```
+
+### 2. Install `uv`
+
+If you haven't already installed [uv](https://github.com/astral-sh/uv), run:
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+> 💡 Restart your shell afterward if `uv` isn't recognized.
+
+### 3. Set up the environment
+
+Run the following to create the virtual environment and install dependencies:
+
+```bash
+make install
+```
+
+### 4. Activate the virtual environment
+
+```bash
+uv venv
+source .venv/bin/activate
+```
+
+You're now ready to start working with the project.
+
+
 ## 📥 Downloading the Datasets
 
 To get started, run the following scripts to download the datasets:
