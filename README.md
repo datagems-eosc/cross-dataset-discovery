@@ -161,3 +161,40 @@ Each retrieval result is returned as a `RetrievalResult` object with the followi
 
 This structure allows easy formatting, comparison, and downstream evaluation of retrieval quality.
 
+
+## 🧠 Core Component: Indexing & Retrieval
+
+To prepare the datasets for retrieval, you need to build the indexes (both sparse and dense). Use the following scripts:
+
+```
+python cross_dataset_discovery/scripts/index_mathe.py
+python cross_dataset_discovery/scripts/index_language.py
+```
+
+These scripts will generate the corresponding index files in:
+
+- `cross_dataset_discovery/assets/mathe/indexes/`
+- `cross_dataset_discovery/assets/language/indexes/`
+
+### ▶️ Running Example Retrievals
+
+Once indexing is complete, you can test the retrieval pipeline using:
+
+```
+python cross_dataset_discovery/scripts/run_mathe_example.py
+python cross_dataset_discovery/scripts/run_language_example.py
+```
+
+These scripts demonstrate how to query the indexed datasets and display top retrieval results.
+
+> 💡 **Note:** If you plan to use the **ReAct retriever**, make sure to download the required LLM model first. The default model can be fetched with:
+
+```
+wget https://huggingface.co/bartowski/Qwen2.5-32B-Instruct-GGUF/resolve/main/Qwen2.5-32B-Instruct-Q4_K_M.gguf \
+     -O cross_dataset_discovery/assets/models/Qwen2.5-32B-Instruct-Q4_K_M.gguf
+```
+
+This model is in `GGUF` format and can be replaced with any [llama.cpp](https://github.com/ggerganov/llama.cpp)-compatible model of your choice.
+
+If you do not wish to use the ReAct retriever, you can simply comment out the corresponding section in the example script.
+
