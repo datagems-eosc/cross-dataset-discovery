@@ -17,7 +17,63 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-
+dependencies = [
+    "AppKit",
+    "argcomplete",
+    "black",
+    "brotli",
+    "brotlicffi",
+    "cairosvg",
+    "chardet",
+    "chonky",
+    "ConfigParser",
+    "contextlib2",
+    "cryptography",
+    "docutils",
+    "eval_type_backport",
+    "exceptiongroup",
+    "faiss",
+    "faiss_cpu",
+    "guidance",
+    "h2",
+    "HTMLParser",
+    "huggingface_hub",
+    "jieba",
+    "langchain",
+    "langchain_community",
+    "langchain_core",
+    "langchain_ollama",
+    "langchain_text_splitters",
+    "langdetect",
+    "lxml",
+    "matplotlib",
+    "mock",
+    "mxbai_rerank",
+    "pandas",
+    "pexpect",
+    "Pillow",
+    "pydantic",
+    "pyjnius",
+    "pyodide",
+    "pyOpenSSL",
+    "pyserini",
+    "pytidylib",
+    "pytz",
+    "regex",
+    "ruff",
+    "semchunk",
+    "sentence_transformers",
+    "simplejson",
+    "thread",
+    "torch",
+    "tqdm",
+    "transformers",
+    "Twisted",
+    "typing_extensions",
+    "ukkonen",
+    "vllm",
+    "zstandard"
+]
 [dependency-groups]
 dev = [
     "pytest>=7.2.0",
@@ -31,7 +87,11 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.setuptools]
-py-modules = ["cross_dataset_discovery"]
+package-dir = { "" = "." }
+
+[tool.setuptools.packages.find]
+where   = ["cross_dataset_discovery"]
+include = ["*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

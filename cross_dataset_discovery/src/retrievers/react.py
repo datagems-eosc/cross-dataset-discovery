@@ -118,17 +118,12 @@ def react_guidance_program(
     lm += f"\nUser question: {question}"
     with assistant():
         for i in range(1, max_rounds + 1):
-            prompt_for_thought_gen = str(lm) + "\nThought:"
             lm += f'\nThought: {gen(name=f"thought_{i}", stop="Action:", temperature=0.2,max_tokens=5000)}'
-            generated_thought = lm.get(f"thought_{i}")
-            prompt_for_action_type_gen = str(lm) + "\nAction:"
 
             lm += f'\nAction: {select(["Search", "Finish"], name=f"act_{i}")}'
-            prompt_for_action_arg_gen = str(lm) + "["
             lm += (
                 f'[{gen(name=f"arg_{i}", stop="]", max_tokens=5000, temperature=0.0)}]'
             )
-            generated_action_arg = lm.get(f"arg_{i}")
             current_act = lm.get(f"act_{i}")
             current_arg = lm.get(f"arg_{i}")
 
@@ -173,7 +168,9 @@ def react_guidance_program(
         lm = lm.set("final_action", last_act)
     if final_arg:
         lm = lm.set("final_argument", final_arg)
-
+    # keep only whatever is after --- Start of Current Task ---
+    to_print = str(lm).split("--- Start of Current Task ---")[-1].strip()
+    print(f"Final LLM answer\n {to_print}")
     return lm
 
 
@@ -189,7 +186,7 @@ class ReActRetriever(FaissDenseRetriever):
     def __init__(
         self,
         dense_model_name_or_path: str = "Snowflake/snowflake-arctic-embed-l-v2.0",
-        model_path: str = "assets/cache/Qwen2.5-32B-Instruct-Q4_K_M.gguf",
+        model_path: str = "cross_dataset_discovery/assets/models/Qwen2.5-32B-Instruct-Q4_K_M.gguf",
         max_iterations: int = 5,
         k_react_search: int = 5,
         llm_n_ctx: int = 32768,
@@ -229,7 +226,7 @@ class ReActRetriever(FaissDenseRetriever):
             return
 
         self.guidance_lm = models.LlamaCpp(
-            self.model_path, n_gpu_layers=-1, n_ctx=self.llm_n_ctx, echo=False
+            self.model_path, n_gpu_layers=0, n_ctx=self.llm_n_ctx, echo=False
         )
 
     def _format_observation(self, results: List[RetrievalResult]) -> str:

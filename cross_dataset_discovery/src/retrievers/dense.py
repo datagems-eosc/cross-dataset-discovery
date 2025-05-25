@@ -61,8 +61,12 @@ class FaissDenseRetriever(BaseRetriever):
             return
 
         texts, metadata_list = [], []
+        total_lines = 0
+        with open(input_jsonl_path, "r", encoding="utf-8") as infile:
+            total_lines = sum(1 for line in infile)
+
         with open(input_jsonl_path, "r", encoding="utf-8") as f:
-            for line in f:
+            for line in tqdm(f, total=total_lines, desc="Processing documents"):
                 data = json.loads(line.strip())
                 text = data.get(field_to_index)
                 if not text or not isinstance(text, str):

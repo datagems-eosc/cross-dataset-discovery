@@ -40,10 +40,13 @@ class PyseriniBM25Retriever(BaseRetriever):
             temp_dir = tempfile.mkdtemp()
             prepared_jsonl_path = os.path.join(temp_dir, "prepared_data.jsonl")
             line_count = 0
+            total_lines = 0
+            with open(input_jsonl_path, "r", encoding="utf-8") as infile:
+                total_lines = sum(1 for line in infile)
             with open(input_jsonl_path, "r", encoding="utf-8") as infile, open(
                 prepared_jsonl_path, "w", encoding="utf-8"
             ) as outfile:
-                for line in infile:
+                for line in tqdm(infile, total=total_lines, desc="Preparing documents"):
                     line = line.strip()
                     if not line:
                         continue
@@ -58,9 +61,9 @@ class PyseriniBM25Retriever(BaseRetriever):
 
                     text_content = original_data.get(field_to_index)
                     if not text_content or not isinstance(text_content, str):
-                        print(
-                            f"Skipping line {line_count + 1}: Missing or invalid field '{field_to_index}'"
-                        )
+                        # print(
+                        #    f"Skipping line {line_count + 1}: Missing or invalid field '{field_to_index}'"
+                        # )
                         continue
 
                     pyserini_doc = {
