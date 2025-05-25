@@ -196,7 +196,11 @@ wget https://huggingface.co/bartowski/Qwen2.5-32B-Instruct-GGUF/resolve/main/Qwe
 
 This model is in `GGUF` format and can be replaced with any [llama.cpp](https://github.com/ggerganov/llama.cpp)-compatible model of your choice.
 
-If you do not wish to use the ReAct retriever, you can simply comment out the corresponding section in the example script.
+Then you can run
+```
+python cross_dataset_discovery/scripts/run_mathe_react_example.py
+python cross_dataset_discovery/scripts/run_language_react_example.py
+```
 
 ## ⚙️ Technical Components
 
