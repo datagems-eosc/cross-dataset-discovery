@@ -1,7 +1,7 @@
 import semchunk
 from transformers import AutoTokenizer
 from typing import List, Callable
-from src.utils.chunker_base import Chunker
+from cross_dataset_discovery.src.utils.chunker_base import Chunker
 
 
 class SemanticChunker(Chunker):

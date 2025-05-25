@@ -3,7 +3,7 @@ import json
 from typing import Optional, List, Dict
 
 from pydantic.v1 import BaseModel
-from src.utils.base_query_decomposer import BaseQueryDecomposer
+from cross_dataset_discovery.src.utils.base_query_decomposer import BaseQueryDecomposer
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser

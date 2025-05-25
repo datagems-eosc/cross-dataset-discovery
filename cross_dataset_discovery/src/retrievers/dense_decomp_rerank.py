@@ -1,9 +1,14 @@
 from typing import List, Optional, Dict
-from cross_dataset_discovery.src.retrieval.base import RetrievalResult
-from cross_dataset_discovery.src.retrieval.dense_rerank import (
+from cross_dataset_discovery.src.retrievers.base import RetrievalResult
+from cross_dataset_discovery.src.retrievers.dense_rerank import (
     DenseRetrieverWithReranker,
 )
-from cross_dataset_discovery.src.utils.query_decompostion import QueryDecomposer
+from cross_dataset_discovery.src.utils.query_decomposition_langcahin import (
+    LangchainQueryDecomposer,
+)
+from cross_dataset_discovery.src.utils.query_decomposition_vllm import (
+    VLLMQueryDecomposer,
+)
 from tqdm import tqdm
 
 
@@ -22,18 +27,21 @@ class DenseRetrieverWithDecompositionAndReranker(DenseRetrieverWithReranker):
         reranker_model_name: str = "mixedbread-ai/mxbai-rerank-large-v2",
         ollama_model: str = "llama3.1:8b",
         decomposition_cache_folder: Optional[str] = None,
+        use_vllm: bool = False,
     ):
         super().__init__(
             embedding_model_name=embedding_model_name,
             reranker_model_name=reranker_model_name,
         )
-        try:
-            self.decomposer = QueryDecomposer(
+        self.use_vllm = use_vllm
+        if not self.use_vllm:
+            self.decomposer = LangchainQueryDecomposer(
                 ollama_model=ollama_model, output_folder=decomposition_cache_folder
             )
-        except Exception as e:
-            print(f"Failed to initialize QueryDecomposer: {e}")
-            raise
+        else:
+            self.decomposer = VLLMQueryDecomposer(
+                output_folder=decomposition_cache_folder
+            )
 
     def retrieve(
         self, nlqs: List[str], output_folder: str, k: int

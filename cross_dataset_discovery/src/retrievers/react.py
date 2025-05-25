@@ -1,9 +1,9 @@
 import os
 import pickle
 from typing import List, Dict, Any, Set, Tuple, Callable
-from src.retrieval.dense import FaissDenseRetriever
+from cross_dataset_discovery.src.retrievers.dense import FaissDenseRetriever
 
-from src.retrieval.base import RetrievalResult
+from cross_dataset_discovery.src.retrievers.base import RetrievalResult
 import faiss
 import torch
 from tqdm.auto import tqdm

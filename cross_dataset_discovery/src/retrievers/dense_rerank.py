@@ -1,7 +1,7 @@
 from typing import List
 from mxbai_rerank import MxbaiRerankV2
-from cross_dataset_discovery.src.retrieval.base import RetrievalResult
-from cross_dataset_discovery.src.retrieval.dense import FaissDenseRetriever
+from cross_dataset_discovery.src.retrievers.base import RetrievalResult
+from cross_dataset_discovery.src.retrievers.dense import FaissDenseRetriever
 import numpy as np
 from tqdm import tqdm
 import torch

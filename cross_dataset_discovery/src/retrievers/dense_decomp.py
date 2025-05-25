@@ -1,9 +1,11 @@
 from typing import List, Optional, Dict, Tuple
 from cross_dataset_discovery.src.retrievers.base import RetrievalResult
-from cross_dataset_discovery.src.retrieval.dense import FaissDenseRetriever
-from cross_dataset_discovery.src.utils.query_decompostion import QueryDecomposer
+from cross_dataset_discovery.src.retrievers.dense import FaissDenseRetriever
+from cross_dataset_discovery.src.utils.query_decomposition_langcahin import (
+    LangchainQueryDecomposer,
+)
 from cross_dataset_discovery.src.utils.query_decomposition_vllm import (
-    QueryDecomposer as VLLMQueryDecomposer,
+    VLLMQueryDecomposer,
 )
 from tqdm import tqdm
 
@@ -24,7 +26,7 @@ class DenseRetrieverWithDecomposition(FaissDenseRetriever):
         super().__init__(model_name_or_path=embedding_model_name)
         self.use_vllm = use_vllm
         if not self.use_vllm:
-            self.decomposer = QueryDecomposer(
+            self.decomposer = LangchainQueryDecomposer(
                 model_name, output_folder=decomposition_cache_folder
             )
         else:

@@ -1,17 +1,17 @@
 from typing import List
 from chonky import ParagraphSplitter
 from chonky.markup_remover import MarkupRemover
-from src.utils.chunker_base import Chunker
+from cross_dataset_discovery.src.utils.chunker_base import Chunker
 
 
-class ChonkyFileChunker(Chunker):
+class ChonkyChunker(Chunker):
     """
     A chunker that uses Chonky's MarkupRemover and ParagraphSplitter
     and can process a JSON file to produce a JSONL output.
     """
 
     def __init__(
-        self, model_id: str = "mirth/chonky_modernbert_base_1", device: str = "cuda"
+        self, model_id: str = "mirth/chonky_modernbert_large_1", device: str = "cuda"
     ):
         """
         Initializes the ChonkyFileChunker.
