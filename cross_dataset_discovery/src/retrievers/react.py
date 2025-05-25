@@ -188,7 +188,7 @@ class ReActRetriever(FaissDenseRetriever):
 
     def __init__(
         self,
-        dense_model_name_or_path: str = "WhereIsAI/UAE-Large-V1",
+        dense_model_name_or_path: str = "Snowflake/snowflake-arctic-embed-l-v2.0",
         model_path: str = "assets/cache/Qwen2.5-32B-Instruct-Q4_K_M.gguf",
         max_iterations: int = 5,
         k_react_search: int = 5,

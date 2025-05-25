@@ -18,7 +18,7 @@ class DenseRetrieverWithDecomposition(FaissDenseRetriever):
 
     def __init__(
         self,
-        embedding_model_name: str = "WhereIsAI/UAE-Large-V1",
+        embedding_model_name: str = "Snowflake/snowflake-arctic-embed-l-v2.0",
         model_name: str = "llama3.1:8b",
         decomposition_cache_folder: Optional[str] = None,
         use_vllm: bool = False,

@@ -21,7 +21,7 @@ class FaissDenseRetriever(BaseRetriever):
 
     def __init__(
         self,
-        model_name_or_path: str = "WhereIsAI/UAE-Large-V1",
+        model_name_or_path: str = "Snowflake/snowflake-arctic-embed-l-v2.0",
         enable_tqdm: bool = True,
     ):
         """
