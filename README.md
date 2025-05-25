@@ -240,6 +240,38 @@ Then you can run
 python cross_dataset_discovery/scripts/run_mathe_react_example.py
 python cross_dataset_discovery/scripts/run_language_react_example.py
 ```
+## 📊 Benchmarking & Evaluation
+
+To evaluate the performance of different retrievers, benchmarking scripts are provided for both use-cases. The evaluation is integrated with [Weights & Biases (wandb)](https://wandb.ai/) for experiment tracking.
+
+### 🛠️ Configuration
+
+Before running the benchmarks, you must configure the following variables inside:
+
+- `cross_dataset_discovery/scripts/run_language_benchmark.py`
+- `cross_dataset_discovery/scripts/run_mathe_benchmark.py`
+
+```python
+WANDB_PROJECT = "your_project_name"
+WANDB_ENTITY = "your_wandb_entity"
+```
+
+If you **do not wish to use wandb**, simply:
+
+- Set both `WANDB_PROJECT` and `WANDB_ENTITY` to empty strings (`""`)
+- Set `verbose=True` in the `evaluator.evaluate(...)` function call to enable logging to the console.
+
+### 🚀 Run Benchmarking
+
+Once configured, execute the scripts using:
+
+```
+python cross_dataset_discovery/scripts/run_language_benchmark.py
+python cross_dataset_discovery/scripts/run_mathe_benchmark.py
+```
+
+These scripts will compute and log the retrieval performance using the predefined benchmarks located in the `assets/*/benchmark.json` files.
+
 
 ## ⚙️ Technical Components
 
