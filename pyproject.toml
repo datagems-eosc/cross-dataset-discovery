@@ -18,7 +18,6 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-    "AppKit",
     "argcomplete",
     "black",
     "brotli",
@@ -32,7 +31,6 @@ dependencies = [
     "docutils",
     "eval_type_backport",
     "exceptiongroup",
-    "faiss",
     "faiss_cpu",
     "guidance",
     "h2",
@@ -54,7 +52,6 @@ dependencies = [
     "Pillow",
     "pydantic",
     "pyjnius",
-    "pyodide",
     "pyOpenSSL",
     "pyserini",
     "pytidylib",
