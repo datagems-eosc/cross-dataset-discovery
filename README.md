@@ -37,7 +37,6 @@ make install
 ### 4. Activate the virtual environment
 
 ```bash
-uv venv
 source .venv/bin/activate
 ```
 
