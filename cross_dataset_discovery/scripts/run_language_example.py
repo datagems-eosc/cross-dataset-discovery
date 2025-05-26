@@ -9,11 +9,13 @@ from cross_dataset_discovery.src.retrievers.dense_rerank import (
 )
 from cross_dataset_discovery.src.retrievers.base import RetrievalResult
 from typing import List
+# from cross_dataset_discovery.src.retrievers.colbert_pylate import PylateColbertRetriever
 
 ALL_RETRIEVER_CLASSES = [
     PyseriniBM25Retriever,
     FaissDenseRetriever,
     DenseRetrieverWithReranker,
+    # PylateColbertRetriever,
 ]
 
 nlq = "Where did Johann Nepomuk von Fuchs become professor of mineralogy in 1826?"
@@ -22,6 +24,8 @@ for retriever_instance in ALL_RETRIEVER_CLASSES:
     print(f"Using retriever: {retriever.__class__.__name__}")
     if isinstance(retriever, PyseriniBM25Retriever):
         output_folder = "cross_dataset_discovery/assets/language/indexes/bm25"
+    # elif isinstance(retriever, PylateColbertRetriever):
+    #    output_folder = "cross_dataset_discovery/assets/language/indexes/colbert"
     else:
         output_folder = "cross_dataset_discovery/assets/language/indexes/dense"
     results: List[List[RetrievalResult]] = retriever.retrieve([nlq], output_folder, k=3)

@@ -9,6 +9,7 @@ from cross_dataset_discovery.src.utils.language_evaluator import LanguageEvaluat
 import json
 import time
 from typing import List
+# from cross_dataset_discovery.src.retrievers.colbert_pylate import PylateColbertRetriever
 
 K = 50
 evaluator = LanguageEvaluator(n_values=[1, 5, 10, 20])
@@ -26,6 +27,7 @@ ALL_RETRIEVER_CLASSES = [
     PyseriniBM25Retriever,
     FaissDenseRetriever,
     DenseRetrieverWithReranker,
+    # PylateColbertRetriever,
 ]
 
 
@@ -34,8 +36,10 @@ for retriever_instance in ALL_RETRIEVER_CLASSES:
     print(f"Using retriever: {retriever.__class__.__name__}")
     if isinstance(retriever, PyseriniBM25Retriever):
         output_folder = "cross_dataset_discovery/assets/language/indexes/bm25"
+    # elif isinstance(retriever, PylateColbertRetriever):
+    #    output_folder = "cross_dataset_discovery/assets/language/indexes/colbert"
     else:
-        output_folder = "cross_dataset_discovery/assets/language/indexes/dense"
+        output_folder = "cross_dataset_discovery/assets/language/indexes/dense_bge_m3"
 
     start = time.time()
     retrieved_results: List[List[RetrievalResult]] = retriever.retrieve(
@@ -44,6 +48,8 @@ for retriever_instance in ALL_RETRIEVER_CLASSES:
     end = time.time()
     wandb_group = "language"
     wandb_name = retriever.__class__.__name__
+    if isinstance(retriever, FaissDenseRetriever):
+        wandb_name += "bge"
     evaluator.evaluate(
         BENCHMARK_FILE_PATH,
         retrieved_results,
