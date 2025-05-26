@@ -1,8 +1,13 @@
-.PHONY: install
-install: ## Install the virtual environment and install the pre-commit hooks
-	@echo "🚀 Creating virtual environment using uv"
+PHONY: install
+install: ## Create a fresh venv (with pip) and install all deps + pre-commit hooks
+	@echo "🚀 Creating virtual environment at .venv"
+	@python -m venv --upgrade-deps .venv
+	@echo "🚀 Activating venv and upgrading pip"
+	@. .venv/bin/activate && python -m pip install --upgrade pip
+	@echo "🚀 Syncing project dependencies via uv"
 	@uv sync
-	@uv run pre-commit install
+	@echo "🚀 Installing pre-commit hooks"
+	@. .venv/bin/activate && uv run pre-commit install
 
 .PHONY: check
 check: ## Run code quality tools.
