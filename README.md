@@ -39,7 +39,12 @@ make install
 ```bash
 source .venv/bin/activate
 ```
+### 5. JDK Dependency (Java 21 via Conda)
 
+The BM25 implementation uses Java (via PyJNIus/Lucene), so you must have a **full Java 21 JDK** (with `javac`) available inside your Python venv. The easiest cross-platform way is:
+```bash
+conda install -c conda-forge openjdk=21 maven -y
+```
 You're now ready to start working with the project.
 
 ## 📦 Downloading Precomputed Assets
