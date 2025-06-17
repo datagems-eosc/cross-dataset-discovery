@@ -7,9 +7,9 @@ from typing import List, Dict, Any
 class RetrievalResult:
     """Stores a single retrieval result."""
 
-    score: float  # The relevance score of the retrieved object
-    object: str  # The retrieved text from the indexed field
-    metadata: Dict[str, Any] = field(default_factory=dict)  # Dictionary for metadata
+    score: float
+    object: str
+    metadata: Dict[str, Any] = field(default_factory=dict)
 
     def __repr__(self) -> str:
         metadata_str = ", ".join(f"{k}: {v}" for k, v in self.metadata.items())
