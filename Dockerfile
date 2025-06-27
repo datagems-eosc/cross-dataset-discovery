@@ -1,21 +1,23 @@
-# Install uv
-FROM python:3.12-slim
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+# Use an official, slim Python runtime as a parent image
+FROM python:3.11-slim
 
-# Change the working directory to the `app` directory
+# Set the working directory in the container
 WORKDIR /app
 
-# Copy the lockfile and `pyproject.toml` into the image
-COPY uv.lock /app/uv.lock
-COPY pyproject.toml /app/pyproject.toml
+# Copy ONLY the requirements file first to leverage Docker layer caching.
+# This step is only re-run if requirements.txt changes, making builds much faster.
+COPY search_api/requirements.txt ./
 
-# Install dependencies
-RUN uv sync --frozen --no-install-project
+# Install the specific dependencies for the API from its own requirements file
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the project into the image
-COPY . /app
+# Now copy your application code into the container.
+# We create a search_api directory inside /app to keep the import paths clean.
+COPY ./search_api /app/search_api
 
-# Sync the project
-RUN uv sync --frozen
+# Expose the port the app runs on
+EXPOSE 8000
 
-CMD [ "python", "cross_dataset_discovery/foo.py" ]
+# The command to run your application in production using Gunicorn.
+# Python will correctly find the `search_api.main` module.
+CMD ["gunicorn", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:8000", "search_api.main:app"]

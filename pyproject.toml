@@ -68,12 +68,23 @@ dependencies = [
     "Twisted",
     "typing_extensions",
     "ukkonen",
-    "vllm",
+    #"vllm",
     "zstandard",
+    #"ragatouille",
+    #"pylate",
+    "fastapi",
+    "uvicorn[standard]",
+    "psycopg2-binary",
+    "pgvector",
+    "python-dotenv",
+    "gunicorn",
+]
+[project.optional-dependencies]
+gpu = [
+    "vllm",
     "ragatouille",
     "pylate"
 ]
-[dependency-groups]
 dev = [
     "pytest>=7.2.0",
     "pre-commit>=2.20.0",

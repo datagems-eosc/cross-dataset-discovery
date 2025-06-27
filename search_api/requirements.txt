@@ -1,0 +1,15 @@
+# Server
+fastapi
+uvicorn[standard]
+gunicorn
+
+# ML & Data
+sentence-transformers
+numpy
+
+# Database
+psycopg2-binary
+pgvector
+
+# Environment variable loading (for local dev)
+python-dotenv

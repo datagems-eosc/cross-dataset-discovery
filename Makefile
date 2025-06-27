@@ -4,8 +4,8 @@ install: ## Create a fresh venv (with pip) and install all deps + pre-commit hoo
 	@python -m venv --upgrade-deps .venv
 	@echo "🚀 Activating venv and upgrading pip"
 	@. .venv/bin/activate && python -m pip install --upgrade pip
-	@echo "🚀 Syncing project dependencies via uv"
-	@uv sync
+	@echo "🚀 Installing project dependencies via uv"
+	@. .venv/bin/activate && uv pip install -e ".[dev]"
 	@echo "🚀 Installing pre-commit hooks"
 	@. .venv/bin/activate && uv run pre-commit install
 

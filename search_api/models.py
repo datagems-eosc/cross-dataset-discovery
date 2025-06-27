@@ -1,0 +1,19 @@
+from pydantic import BaseModel, Field
+from typing import List
+
+class SearchRequest(BaseModel):
+    query: str
+    k: int = Field(default=5, gt=0, le=100) 
+
+class SearchResult(BaseModel):
+    content: str
+    use_case: str
+    source: str
+    source_id: str
+    chunk_id: int
+    language: str
+    distance: float
+
+class SearchResponse(BaseModel):
+    query_time: float
+    results: List[SearchResult]
