@@ -340,3 +340,88 @@ Below are the core components and libraries used:
 
 - The **ReAct retriever** is built on LLM reasoning over actions (retrieve, answer).
 - It uses the [**Guidance**](https://github.com/guidance-ai/guidance) framework to constrain the language model’s output, enforcing the decoding of the predefined actions.
+
+
+# Deployment
+
+
+## 1. Build and Publish Docker Image
+
+The application is containerized using the provided `Dockerfile`. A GitHub Actions workflow automates the build and push process to the GitHub Container Registry (`ghcr.io`).
+
+### Trigger the Build
+Create and push a Git tag to start the build workflow. The tag version should correspond to the image version you intend to deploy.
+
+```bash
+git tag v1.0.1
+git push origin v1.0.1
+```
+
+### Create Personal Access Token (PAT)
+The cluster requires a GitHub Personal Access Token to pull the private Docker image. Generate a new PAT with the **`read:packages`** scope. You will need this token for the next step.
+
+## 2. Create Kubernetes Secrets
+
+Deployment secrets are not stored in the repository and must be created manually.
+
+1. **Navigate to the Deployment Directory**
+   ```bash
+   cd deployment/search-api/
+   ```
+
+2. **Generate Secret Files**
+   Run the interactive script. It will prompt for your GitHub username, the PAT you just created, and the database credentials.
+   ```bash
+   ./generate-k8s-secrets.sh
+   ```
+
+3. **Apply the Secrets**
+   Apply the generated files to the `athenarc` namespace in your cluster.
+   ```bash
+   kubectl apply -f search-api.secret.ghcr.yaml -n athenarc
+   kubectl apply -f search-api.secret.app.yaml -n athenarc
+   ```
+
+## 3. Deploy the Application
+
+Apply the following Kubernetes manifests. Ensure the `image` tag in `search-api.deployment.yaml` matches the version you built (e.g., `v1.0.1`).
+
+```bash
+# Apply configuration and storage claim
+kubectl apply -f search-api.configmap.yaml -n athenarc
+kubectl apply -f search-api.volumes.yaml -n athenarc
+
+# Apply the core application manifests
+kubectl apply -f search-api.deployment.yaml -n athenarc
+kubectl apply -f search-api.service.yaml -n athenarc
+kubectl apply -f search-api.ingress.yaml -n athenarc
+```
+
+## 4. Verify the Deployment
+
+After deploying and creating the database index, send a request to the search endpoint to verify that the service is operational.
+
+### Example Request
+
+```bash
+curl -X POST "https://datagems-dev.scayle.es/search-api/search/" \
+-H "Content-Type: application/json" \
+-d '{
+      "query": "What is the fundamental theorem of calculus?",
+      "k": 3
+    }'
+```
+
+### Response Structure
+
+A successful request will return a `200 OK` status and a JSON object with the following structure:
+
+- **`query_time`**: The time in seconds the database query took to execute
+- **`results`**: A list of result objects, sorted by relevance. Each result object contains:
+  - **`content`**: The text chunk that matched the query
+  - **`use_case`**: The use case category for the content
+  - **`source`**: The source of the content (e.g., "wikipedia")
+  - **`source_id`**: Unique identifier for the source document
+  - **`chunk_id`**: Unique identifier for the specific text chunk
+  - **`language`**: Language code of the content (e.g., "en")
+  - **`distance`**: The similarity score between the query and the result (smaller values indicate closer matches)
