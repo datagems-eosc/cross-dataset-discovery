@@ -8,7 +8,6 @@ from . import search_logic
 from .database import connection_pool
 from .models import SearchRequest, SearchResponse
 
-# This dictionary will hold our application's state, like the loaded model
 app_state = {}
 
 @asynccontextmanager

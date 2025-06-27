@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: search-api-ingress
+  namespace: athenarc
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300" 
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300" 
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - datagems-dev.scayle.es 
+  rules:
+    - host: datagems-dev.scayle.es
+      http:
+        paths:
+          - path: /search-api(/|$)(.*) 
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: search-api-service
+                port:
+                  number: 8000

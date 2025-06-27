@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: search-api-config
+  namespace: athenarc 
+data:
+  TABLE_NAME: "embeddings_cross_dataset_discovery_mathe_language"

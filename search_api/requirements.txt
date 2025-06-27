@@ -11,5 +11,4 @@ numpy
 psycopg2-binary
 pgvector
 
-# Environment variable loading (for local dev)
 python-dotenv

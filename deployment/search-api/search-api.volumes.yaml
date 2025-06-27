@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: search-api-logs-pvc
+  namespace: athenarc
+spec:
+  storageClassName: athenarc-nfs 
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi 
