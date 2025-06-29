@@ -399,7 +399,7 @@ kubectl apply -f search-api.ingress.yaml -n athenarc
 
 ## 4. Verify the Deployment
 
-After deploying and creating the database index, send a request to the search endpoint to verify that the service is operational.
+After deploying and creating the database index, you can send a request to the search endpoint to verify that the service is operational.
 
 ### Example Request
 
