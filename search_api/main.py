@@ -2,41 +2,48 @@ from fastapi import FastAPI, Depends, HTTPException
 from contextlib import asynccontextmanager
 from sentence_transformers import SentenceTransformer
 import psycopg2
-
-# Use relative imports since this is part of a package
+from psycopg2.pool import SimpleConnectionPool
 from . import search_logic
-from .database import connection_pool
+from . import database 
 from .models import SearchRequest, SearchResponse
 
 app_state = {}
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # --- Code to run on startup ---
     print("Loading SentenceTransformer model...")
     app_state["model"] = SentenceTransformer('BAAI/bge-m3')
     print("Model loaded.")
-    print("Database connection pool is ready.")
+
+    print("Creating database connection pool...")
+    try:
+        database.connection_pool = SimpleConnectionPool(minconn=1, maxconn=10, **database.DB_CONFIG)
+        print("Database connection pool created successfully.")
+    except psycopg2.OperationalError as e:
+        print(f"FATAL: Could not create database connection pool: {e}")
+        database.connection_pool = None
     
     yield
     
-    # --- Code to run on shutdown ---
     print("Closing database connection pool...")
-    if connection_pool:
-        connection_pool.closeall()
+    if database.connection_pool:
+        database.connection_pool.closeall()
     print("Shutdown complete.")
 
 app = FastAPI(lifespan=lifespan)
 
 def get_db_connection():
     """Dependency to get a database connection from the pool."""
+    if database.connection_pool is None:
+        raise HTTPException(status_code=503, detail="Database connection pool is not available.")
+    
     conn = None
     try:
-        conn = connection_pool.getconn()
+        conn = database.connection_pool.getconn()
         yield conn
     finally:
         if conn:
-            connection_pool.putconn(conn)
+            database.connection_pool.putconn(conn)
 
 @app.get("/")
 def read_root():
@@ -54,6 +61,6 @@ def perform_search(request: SearchRequest, conn=Depends(get_db_connection)):
         search_results = search_logic.search_db(request.query, request.k, model, conn)
         return SearchResponse(**search_results)
     except psycopg2.Error as e:
-        raise HTTPException(status_code=500, detail=f"Database query failed: {str(e)}")
+=        raise HTTPException(status_code=500, detail=f"Database query failed: {e}")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {e}")

@@ -1,8 +1,5 @@
 import os
-import psycopg2
-from psycopg2.pool import SimpleConnectionPool
 from dotenv import load_dotenv
-
 load_dotenv()
 
 DB_CONFIG = {
@@ -14,4 +11,4 @@ DB_CONFIG = {
 }
 TABLE_NAME = os.getenv("TABLE_NAME")
 
-connection_pool = SimpleConnectionPool(minconn=1, maxconn=10, **DB_CONFIG)
+connection_pool = None
