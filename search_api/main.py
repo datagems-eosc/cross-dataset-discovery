@@ -17,9 +17,9 @@ app_state = {}
 async def lifespan(app: FastAPI):
     logger.info("Application startup sequence initiated.")
     
-    logger.info("Loading SentenceTransformer model...")
-    app_state["model"] = SentenceTransformer('BAAI/bge-m3')
-    logger.info("Model loaded successfully.")
+    #logger.info("Loading SentenceTransformer model...")
+    #app_state["model"] = SentenceTransformer('BAAI/bge-m3')
+    #logger.info("Model loaded successfully.")
 
     logger.info("Creating database connection pool...")
     try:
@@ -67,11 +67,12 @@ def perform_search(request: SearchRequest, conn=Depends(get_db_connection)):
     log = logger.bind(query=request.query, k=request.k)
     log.info("Search request received.")
 
-    if "model" not in app_state or app_state["model"] is None:
-        log.error("Search request failed because model is not loaded.")
-        raise HTTPException(status_code=503, detail="Model is not loaded yet.")
+    #if "model" not in app_state or app_state["model"] is None:
+    #    log.error("Search request failed because model is not loaded.")
+    #    raise HTTPException(status_code=503, detail="Model is not loaded yet.")
     try:
-        model = app_state["model"]
+        #model = app_state["model"]
+        model = None # this is placeholder and should change when we transition back to using dense retrieval
         search_results = search_logic.search_db(request.query, request.k, model, conn)
         log.info("Search completed successfully.", query_time=search_results["query_time"], results_count=len(search_results["results"]))
         return SearchResponse(**search_results)

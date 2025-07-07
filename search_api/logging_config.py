@@ -15,39 +15,39 @@ async def request_response_logging_middleware(request: Request, call_next):
     FastAPI middleware to log the details of every incoming request and its response.
     """
     log = structlog.get_logger(__name__)
-    
     start_time = time.time()
-        try:
+    
+    try:
         response: Response = await call_next(request)
+        process_time = (time.time() - start_time) * 1000
+        status_code = response.status_code
+
+        log_level = "info"
+        if status_code >= 500:
+            log_level = "error"
+        elif status_code >= 400:
+            log_level = "warning"
+        
+        log.log(
+            getattr(logging, log_level.upper()),
+            "http_request_finished",
+            RequestMethod=request.method,
+            RequestPath=str(request.url),
+            StatusCode=status_code,
+            ProcessTimeMS=round(process_time, 2)
+        )
+
     except Exception as e:
         process_time = (time.time() - start_time) * 1000
         log.error(
             "http_request_unhandled_exception",
             RequestMethod=request.method,
-            RequestPath=request.url.path,
+            RequestPath=str(request.url),
             ProcessTimeMS=round(process_time, 2),
             exc_info=e,
         )
         raise
         
-    process_time = (time.time() - start_time) * 1000
-    status_code = response.status_code
-
-    log_level = "info"
-    if status_code >= 500:
-        log_level = "error"
-    elif status_code >= 400:
-        log_level = "warning"
-
-    log.log(
-        getattr(logging, log_level.upper()),
-        "http_request_finished",
-        RequestMethod=request.method,
-        RequestPath=request.url.path,
-        StatusCode=status_code,
-        ProcessTimeMS=round(process_time, 2)
-    )
-
     return response
 
 
