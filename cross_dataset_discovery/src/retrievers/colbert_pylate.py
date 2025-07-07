@@ -13,6 +13,18 @@ from cross_dataset_discovery.src.retrievers.base import BaseRetriever, Retrieval
 
 
 class PylateColbertRetriever(BaseRetriever):
+    """
+    A retriever implementation using PyLate's ColBERT model with PLAID indexing.
+    
+    This class provides dense retrieval capabilities using ColBERT embeddings and
+    PLAID (Product Quantization and Locality-Sensitive Hashing) indexing for
+    efficient similarity search over large document collections.
+    
+    Attributes:
+        PLAID_INDEX_DIR_NAME (str): Default directory name for PLAID index storage
+        DOC_STORE_FILENAME (str): Default filename for document store pickle file
+    """
+    
     PLAID_INDEX_DIR_NAME = "plaid_colbert_index"
     DOC_STORE_FILENAME = "doc_store.pkl"
 
@@ -29,6 +41,21 @@ class PylateColbertRetriever(BaseRetriever):
         encode_batch_size: int = 32,
         enable_tqdm: bool = True,
     ):
+        """
+        Initialize the PylateColbertRetriever.
+        
+        Args:
+            model_name_or_path (str): Path or name of the ColBERT model to use
+            plaid_nbits (int): Number of bits for quantization in PLAID index
+            plaid_kmeans_niters (int): Number of k-means iterations for clustering
+            plaid_index_bsize (int): Batch size for index building
+            plaid_ndocs (int): Number of documents per cluster in PLAID
+            plaid_centroid_score_threshold (float): Threshold for centroid scoring
+            plaid_ncells (int): Number of cells to search in PLAID
+            plaid_search_batch_size (int): Batch size for search operations
+            encode_batch_size (int): Batch size for encoding operations
+            enable_tqdm (bool): Whether to show progress bars
+        """
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.pylate_model = pylate_models.ColBERT(
             model_name_or_path=model_name_or_path, device=self.device
@@ -69,6 +96,13 @@ class PylateColbertRetriever(BaseRetriever):
         return os.path.join(output_folder, self.DOC_STORE_FILENAME)
 
     def _initialize_plaid_components(self, output_folder: str, override: bool = False):
+        """
+        Initialize PLAID index and retriever components.
+        
+        Args:
+            output_folder (str): Output folder containing the index
+            override (bool): Whether to override existing index
+        """
         plaid_parent_folder = self._get_plaid_index_parent_folder(output_folder)
         plaid_index_name = self._get_plaid_index_name()
 
@@ -95,6 +129,7 @@ class PylateColbertRetriever(BaseRetriever):
 
         plaid_metadata_file = os.path.join(plaid_full_index_path, "metadata.json")
 
+        # Check if index already exists and is complete
         should_reindex = True
         if os.path.exists(doc_store_path) and os.path.exists(plaid_metadata_file):
             print(f"Index components found in '{output_folder}'. Skipping indexing.")
@@ -116,11 +151,13 @@ class PylateColbertRetriever(BaseRetriever):
         texts_to_encode = []
         doc_store_build: Dict[str, Dict[str, Any]] = {}
 
+        # Count total lines for progress bar
         total_lines = 0
         with open(input_jsonl_path, "r", encoding="utf-8") as infile:
             for _ in infile:
                 total_lines += 1
 
+        # Read and prepare documents for indexing
         doc_idx_counter = 0
         with open(input_jsonl_path, "r", encoding="utf-8") as f:
             for line in tqdm(
@@ -137,11 +174,13 @@ class PylateColbertRetriever(BaseRetriever):
 
                 texts_to_encode.append(text_content)
 
+                # Extract metadata fields
                 current_metadata: Dict[str, Any] = {}
                 for meta_field in metadata_fields:
                     if meta_field in data:
                         current_metadata[meta_field] = data[meta_field]
 
+                # Create unique document ID for PLAID
                 plaid_doc_id = f"doc_{doc_idx_counter}"
                 doc_store_build[plaid_doc_id] = {
                     "text": text_content,
@@ -158,6 +197,7 @@ class PylateColbertRetriever(BaseRetriever):
 
         print(f"Encoding {len(texts_to_encode)} documents using multi-process...")
 
+        # Set up multi-GPU processing if available
         target_devices = (
             [f"cuda:{i}" for i in range(self.num_gpus)]
             if self.num_gpus > 0
@@ -165,13 +205,10 @@ class PylateColbertRetriever(BaseRetriever):
         )
         pool = self.pylate_model.start_multi_process_pool(target_devices=target_devices)
 
-        # --- START OF CHANGES FOR TQDM WITH MULTI-PROCESS DOCUMENT ENCODING ---
         all_doc_embeddings_list = []
-        # Define a size for macro-chunks for the tqdm progress bar
-        # This determines how many documents are processed by encode_multi_process
-        # before the tqdm bar updates.
-        EXTERNAL_MACRO_CHUNK_SIZE = 20480  # Adjust as needed
+        EXTERNAL_MACRO_CHUNK_SIZE = 20480  # Process documents in large chunks
 
+        # Encode documents in batches to manage memory usage
         for text_macro_batch in iter_batch(
             texts_to_encode,
             batch_size=EXTERNAL_MACRO_CHUNK_SIZE,
@@ -192,7 +229,6 @@ class PylateColbertRetriever(BaseRetriever):
             all_doc_embeddings_list.extend(current_batch_embeddings_list)
 
         doc_embeddings = all_doc_embeddings_list
-        # --- END OF CHANGES FOR TQDM WITH MULTI-PROCESS DOCUMENT ENCODING ---
 
         self.pylate_model.stop_multi_process_pool(pool)
 
@@ -203,6 +239,7 @@ class PylateColbertRetriever(BaseRetriever):
             documents_ids=plaid_doc_ids_list, documents_embeddings=doc_embeddings
         )
 
+        # Save document store for later retrieval
         self.doc_store = doc_store_build
         with open(doc_store_path, "wb") as f:
             pickle.dump(self.doc_store, f)
@@ -212,6 +249,7 @@ class PylateColbertRetriever(BaseRetriever):
     def retrieve(
         self, nlqs: List[str], output_folder: str, k: int
     ) -> List[List[RetrievalResult]]:
+        # Load index and document store if not already loaded
         if self.pylate_retriever_instance is None or self.doc_store is None:
             doc_store_path = self._get_doc_store_path(output_folder)
             plaid_full_index_path = self._get_plaid_full_index_path(output_folder)
@@ -236,7 +274,7 @@ class PylateColbertRetriever(BaseRetriever):
         query_embeddings = self.pylate_model.encode(
             nlqs,
             batch_size=self.encode_batch_size,
-            is_query=True,
+            is_query=True,  # Important: this flag affects how queries are encoded
             show_progress_bar=self.enable_tqdm,
             convert_to_numpy=True,
         )
@@ -246,6 +284,7 @@ class PylateColbertRetriever(BaseRetriever):
             queries_embeddings=query_embeddings, k=k
         )
 
+        # Convert PyLate results to RetrievalResult objects
         all_results: List[List[RetrievalResult]] = []
         for i, pylate_batch_results in enumerate(
             tqdm(
