@@ -78,7 +78,11 @@ def datagems_log_formatter(_, __, event_dict: EventDict) -> EventDict:
     formatted_event["@mt"] = event_dict.pop("event", None)
     level = event_dict.pop("log_level", "info")
     formatted_event["@l"] = level.capitalize()
-    formatted_event["DGCorrelationId"] = event_dict.pop("correlation_id", None)
+    correlation_id_func = event_dict.pop("correlation_id", None)
+    if callable(correlation_id_func):
+        formatted_event["DGCorrelationId"] = correlation_id_func()
+    else:
+        formatted_event["DGCorrelationId"] = correlation_id_func
     formatted_event["SourceContext"] = event_dict.pop("logger", None)
     formatted_event.update(event_dict)
     return formatted_event
