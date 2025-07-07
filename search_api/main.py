@@ -1,40 +1,50 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Request
 from contextlib import asynccontextmanager
 from sentence_transformers import SentenceTransformer
 import psycopg2
 from psycopg2.pool import SimpleConnectionPool
+import structlog
 from . import search_logic
 from . import database 
 from .models import SearchRequest, SearchResponse
+from .logging_config import setup_logging, correlation_id_middleware, request_response_logging_middleware
+setup_logging()
+logger = structlog.get_logger(__name__)
 
 app_state = {}
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("Loading SentenceTransformer model...")
+    logger.info("Application startup sequence initiated.")
+    
+    logger.info("Loading SentenceTransformer model...")
     app_state["model"] = SentenceTransformer('BAAI/bge-m3')
-    print("Model loaded.")
+    logger.info("Model loaded successfully.")
 
-    print("Creating database connection pool...")
+    logger.info("Creating database connection pool...")
     try:
-        database.connection_pool = SimpleConnectionPool(minconn=1, maxconn=10, **database.DB_CONFIG)
-        print("Database connection pool created successfully.")
+        database.connection_pool = SimpleConnectionPool(minconn=1, maxconn=10, dsn=database.CONNECTION_STRING)
+        logger.info("Database connection pool created successfully.")
     except psycopg2.OperationalError as e:
-        print(f"FATAL: Could not create database connection pool: {e}")
+        logger.fatal("Could not create database connection pool", error=str(e))
         database.connection_pool = None
     
     yield
     
-    print("Closing database connection pool...")
+    logger.info("Application shutdown sequence initiated.")
+    logger.info("Closing database connection pool...")
     if database.connection_pool:
         database.connection_pool.closeall()
-    print("Shutdown complete.")
+    logger.info("Shutdown complete.")
 
 app = FastAPI(lifespan=lifespan)
+app.middleware("http")(correlation_id_middleware)
+app.middleware("http")(request_response_logging_middleware)
 
 def get_db_connection():
     """Dependency to get a database connection from the pool."""
     if database.connection_pool is None:
+        logger.error("Database connection requested but pool is not available.")
         raise HTTPException(status_code=503, detail="Database connection pool is not available.")
     
     conn = None
@@ -48,19 +58,26 @@ def get_db_connection():
 @app.get("/")
 def read_root():
     """A simple health check endpoint."""
-    return {"status": "ok", "message": "Search API is running."}
+    logger.info("Health check endpoint was hit.")
+    return {"status": "ok", "message": "Cross Dataset Discovery API is running."}
 
 @app.post("/search/", response_model=SearchResponse)
 def perform_search(request: SearchRequest, conn=Depends(get_db_connection)):
     """Accepts a query and k, returns the top k similar documents."""
-    if "model" not in app_state or app_state["model"] is None:
-        raise HTTPException(status_code=503, detail="Model is not loaded yet.")
+    log = logger.bind(query=request.query, k=request.k)
+    log.info("Search request received.")
 
+    if "model" not in app_state or app_state["model"] is None:
+        log.error("Search request failed because model is not loaded.")
+        raise HTTPException(status_code=503, detail="Model is not loaded yet.")
     try:
         model = app_state["model"]
         search_results = search_logic.search_db(request.query, request.k, model, conn)
+        log.info("Search completed successfully.", query_time=search_results["query_time"], results_count=len(search_results["results"]))
         return SearchResponse(**search_results)
     except psycopg2.Error as e:
-=        raise HTTPException(status_code=500, detail=f"Database query failed: {e}")
+        log.error("Database query failed during search.", error=str(e))
+        raise HTTPException(status_code=500, detail=f"Database query failed: {e}")
     except Exception as e:
+        log.error("An unexpected error occurred during search.", error=str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {e}")

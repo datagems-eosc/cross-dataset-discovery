@@ -2,6 +2,7 @@
 fastapi
 uvicorn[standard]
 gunicorn
+structlog
 
 # ML & Data
 sentence-transformers
