@@ -24,10 +24,10 @@ def search_db(query: str, k: int, model, conn):
                 source_id, 
                 chunk_id, 
                 language, 
-                ts_rank_cd(ts_content, plainto_tsquery('simple', %s)) AS relevance
+                ts_rank_cd(ts_content, plainto_tsquery('english', %s)) AS relevance
             FROM {TABLE_NAME}
             WHERE 
-                ts_content @@ plainto_tsquery('simple', %s)
+                ts_content @@ plainto_tsquery('english', %s)
             ORDER BY 
                 relevance DESC
             LIMIT %s;
