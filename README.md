@@ -404,7 +404,7 @@ After deploying and creating the database index, you can send a request to the s
 ### Example Request
 
 ```bash
-curl -X POST "https://datagems-dev.scayle.es/cross-dataset-discovery-api/search/" \
+curl -X POST "https://datagems-dev.scayle.es/cross-dataset-discovery/search/" \
 -H "Content-Type: application/json" \
 -d '{
       "query": "What is the fundamental theorem of calculus?",
