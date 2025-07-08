@@ -13,3 +13,7 @@ psycopg2-binary
 pgvector
 
 python-dotenv
+
+#Authentication 
+python-jose[cryptography]
+python-multipart

@@ -8,6 +8,7 @@ from . import search_logic
 from . import database 
 from .models import SearchRequest, SearchResponse
 from .logging_config import setup_logging, correlation_id_middleware, request_response_logging_middleware
+from . import security
 setup_logging()
 logger = structlog.get_logger(__name__)
 
@@ -62,20 +63,46 @@ def read_root():
     return {"status": "ok", "message": "Cross Dataset Discovery API is running."}
 
 @app.post("/search/", response_model=SearchResponse)
-def perform_search(request: SearchRequest, conn=Depends(get_db_connection)):
+def perform_search(
+    request: SearchRequest, 
+    conn=Depends(get_db_connection),
+    claims: dict = Depends(security.require_role("user")) # protect the endpoint with JWT authentication
+):
     """Accepts a query and k, returns the top k similar documents."""
-    log = logger.bind(query=request.query, k=request.k)
+    user_subject = claims.get("sub")
+    log = logger.bind(query=request.query, k=request.k, user_subject=user_subject)
     log.info("Search request received.")
     # the commented lines are related to the dense retrieval, hence commented out for the bm25 retrieval
     #if "model" not in app_state or app_state["model"] is None:
     #    log.error("Search request failed because model is not loaded.")
     #    raise HTTPException(status_code=503, detail="Model is not loaded yet.")
+    user_permissions = set(claims.get("datasets", []))
     try:
-        #model = app_state["model"]
-        model = None # this is placeholder and should change when we transition back to using dense retrieval
-        search_results = search_logic.search_db(request.query, request.k, model, conn)
-        log.info("Search completed successfully.", query_time=search_results["query_time"], results_count=len(search_results["results"]))
-        return SearchResponse(**search_results)
+        search_results_data = search_logic.search_db(request.query, request.k, None, conn)
+        #  filter the results based on the users permissions
+        authorized_results = []
+        for result in search_results_data["results"]:
+            required_permission = f"/dataset/group/{result.use_case}/search"
+            if required_permission in user_permissions:
+                authorized_results.append(result)
+            else:
+                log.warning(
+                    "Result filtered due to missing permission",
+                    required_permission=required_permission,
+                    source_id=result.source_id
+                )
+        final_response = {
+            "query_time": search_results_data["query_time"],
+            "results": authorized_results
+        }
+        log.info(
+            "Search completed and filtered.",
+            query_time=final_response["query_time"],
+            initial_results_count=len(search_results_data["results"]),
+            authorized_results_count=len(final_response["results"])
+        )
+        return SearchResponse(**final_response)
+
     except psycopg2.Error as e:
         log.error("Database query failed during search.", error=str(e))
         raise HTTPException(status_code=500, detail=f"Database query failed: {e}")
