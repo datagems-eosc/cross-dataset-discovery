@@ -22,6 +22,7 @@ def search_db(query: str, k: int, model, conn):
                 source, 
                 source_id, 
                 chunk_id, 
+                language, 
                 ts_rank_cd(ts_content, plainto_tsquery('english', %s)) AS relevance
             FROM {TABLE_NAME}
             WHERE 
@@ -109,7 +110,7 @@ def check_database_schema(conn):
     Raises an exception if any check fails.
     """
     required_columns = {
-        "content", "use_case", "source", "source_id", 
+        "content", "source", "source_id", 
         "chunk_id", "language", "ts_content", "embedding"
     }
 
