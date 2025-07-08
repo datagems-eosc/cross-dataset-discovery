@@ -6,7 +6,7 @@ from psycopg2.pool import SimpleConnectionPool
 import structlog
 from . import search_logic
 from . import database 
-from .models import SearchRequest, SearchResponse
+from .models import SearchRequest, SearchResponse, SearchResult, API_SearchResult 
 from .logging_config import setup_logging, correlation_id_middleware, request_response_logging_middleware
 from . import security
 setup_logging()
@@ -84,7 +84,7 @@ def perform_search(
         for result in search_results_data["results"]:
             required_permission = f"/dataset/group/{result.use_case}/search"
             if required_permission in user_permissions:
-                authorized_results.append(result)
+                authorized_results.append(API_SearchResult(**result.model_dump()))  #pydantic will ignore the use_case field
             else:
                 log.warning(
                     "Result filtered due to missing permission",

@@ -14,6 +14,14 @@ class SearchResult(BaseModel):
     language: str
     distance: float
 
+class API_SearchResult(BaseModel):
+    content: str
+    source: str
+    source_id: str
+    chunk_id: int
+    language: str
+    distance: float
+    
 class SearchResponse(BaseModel):
     query_time: float
-    results: List[SearchResult]
+    results: List[API_SearchResult]

@@ -19,6 +19,7 @@ def search_db(query: str, k: int, model, conn):
             sql_query = f"""
             SELECT 
                 content, 
+                use_case, 
                 source, 
                 source_id, 
                 chunk_id, 
@@ -110,7 +111,7 @@ def check_database_schema(conn):
     Raises an exception if any check fails.
     """
     required_columns = {
-        "content", "source", "source_id", 
+        "content", "use_case", "source", "source_id", 
         "chunk_id", "language", "ts_content", "embedding"
     }
 
