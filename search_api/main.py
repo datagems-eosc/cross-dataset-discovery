@@ -66,7 +66,7 @@ def read_root():
 def perform_search(
     request: SearchRequest, 
     conn=Depends(get_db_connection),
-    claims: dict = Depends(security.require_role("user")) # protect the endpoint with JWT authentication
+    claims: dict = Depends(security.require_role(["user", "dg_user"])) # protect the endpoint with JWT authentication, checkkig for user or dg_user roles
 ):
     """Accepts a query and k, returns the top k similar documents."""
     user_subject = claims.get("sub")

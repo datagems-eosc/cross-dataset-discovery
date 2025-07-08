@@ -4,6 +4,8 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 import structlog
 from . import auth_config
+from typing import List
+
 logger = structlog.get_logger(__name__)
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 _oidc_config = None
@@ -67,20 +69,27 @@ async def get_current_user_claims(token: str = Depends(oauth2_scheme)) -> dict:
         logger.error("An unexpected error occurred during token validation", error=str(e))
         raise credentials_exception
 
-def require_role(required_role: str):
+def require_role(required_roles: List[str]):
+    """
+    A FastAPI dependency that checks if the user has at least one of the required roles.
+    """
     def role_checker(claims: dict = Depends(get_current_user_claims)) -> dict:
-        roles = claims.get("realm_access", {}).get("roles", [])
+        # this implementation  aims to check not only for user but for dg_user as well for the swagger
+        user_roles = set(claims.get("realm_access", {}).get("roles", []))
         
-        if required_role not in roles:
+        # Check for any intersection between the user's roles and the required roles
+        if not user_roles.intersection(required_roles):
             logger.warning(
-                "Authorization failed: Missing required role",
-                required_role=required_role,
+                "Authorization failed: User missing any of the required roles",
+                required_roles=required_roles,
                 user_subject=claims.get("sub"),
-                user_roles=roles
+                user_roles=list(user_roles) 
             )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"User does not have the required '{required_role}' role."
+                detail=f"User does not have any of the required roles: {', '.join(required_roles)}."
             )
+        
+        # If the check passes, return the claims for use in the endpoint
         return claims
     return role_checker
