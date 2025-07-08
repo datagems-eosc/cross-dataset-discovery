@@ -12,12 +12,14 @@ def search_db(query: str, k: int, model, conn):
     The 'model' parameter is accepted to maintain a consistent interface
     but is NOT used in this function.
     """
-    try:        
+    try:
         query_words = re.findall(r'\w+', query)
         if not query_words:
             return {"query_time": 0, "results": []}
-            
-        formatted_query = " | ".join(query_words)
+        or_query = " | ".join(query_words)
+        phrase_query = query 
+
+
         with conn.cursor() as cur:
             start_time = time.time()
             sql_query = f"""
@@ -28,7 +30,8 @@ def search_db(query: str, k: int, model, conn):
                 source_id, 
                 chunk_id, 
                 language, 
-                ts_rank_cd(ts_content, to_tsquery('english', %s)) AS relevance
+                (ts_rank_cd(ts_content, to_tsquery('english', %s)) + 
+                 ts_rank_cd(ts_content, phraseto_tsquery('english', %s)) * 5) AS relevance
             FROM {TABLE_NAME}
             WHERE 
                 ts_content @@ to_tsquery('english', %s)
@@ -36,7 +39,8 @@ def search_db(query: str, k: int, model, conn):
                 relevance DESC
             LIMIT %s;
             """
-            cur.execute(sql_query, (formatted_query, formatted_query, k))
+            
+            cur.execute(sql_query, (or_query, phrase_query, or_query, k))
             end_time = time.time()
             
             query_duration = end_time - start_time
