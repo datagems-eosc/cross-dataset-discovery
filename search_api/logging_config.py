@@ -14,6 +14,10 @@ async def request_response_logging_middleware(request: Request, call_next):
     """
     FastAPI middleware to log the details of every incoming request and its response.
     """
+    health_check_paths = ["/", "/health"]
+    if request.url.path in health_check_paths:
+        return await call_next(request)
+
     log = structlog.get_logger(__name__)
     start_time = time.time()
     
@@ -21,7 +25,10 @@ async def request_response_logging_middleware(request: Request, call_next):
         response: Response = await call_next(request)
         process_time = (time.time() - start_time) * 1000
         status_code = response.status_code
-
+        response_size = 0
+        if "content-length" in response.headers:
+            response_size = int(response.headers["content-length"])
+            
         log_level = "info"
         if status_code >= 500:
             log_level = "error"
@@ -34,7 +41,8 @@ async def request_response_logging_middleware(request: Request, call_next):
             RequestMethod=request.method,
             RequestPath=str(request.url),
             StatusCode=status_code,
-            ProcessTimeMS=round(process_time, 2)
+            ProcessTimeMS=round(process_time, 2),
+            ResponseSize=response_size 
         )
 
     except Exception as e:

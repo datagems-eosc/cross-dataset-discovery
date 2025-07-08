@@ -103,3 +103,36 @@ def search_db_embedding(query: str, k: int, model, conn):
     except psycopg2.Error as e:
         print(f"Database error: {e}")
         raise
+    
+def check_database_schema(conn):
+    """
+    Checks if the database is connected, the required table exists,
+    and all necessary columns are present in the table.
+    Raises an exception if any check fails.
+    """
+    required_columns = {
+        "content", "use_case", "source", "source_id", 
+        "chunk_id", "language", "ts_content", "embedding"
+    }
+
+    try:
+        with conn.cursor() as cur:
+            # 1. Check for table existence by querying it
+            cur.execute(f"SELECT 1 FROM {TABLE_NAME} LIMIT 1;")
+
+            # 2. Check for column existence
+            cur.execute("""
+                SELECT column_name 
+                FROM information_schema.columns
+                WHERE table_schema = 'public' AND table_name = %s;
+            """, (TABLE_NAME,))
+            
+            existing_columns = {row[0] for row in cur.fetchall()}
+
+            missing_columns = required_columns - existing_columns
+            if missing_columns:
+                raise ValueError(f"Schema validation failed. Missing columns in table '{TABLE_NAME}': {', '.join(missing_columns)}")
+
+    except psycopg2.Error as e:
+        # Re-raise database-specific errors to be caught by the health endpoint
+        raise ConnectionError(f"Database check failed: {e}") from e

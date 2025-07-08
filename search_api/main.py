@@ -66,7 +66,7 @@ def perform_search(request: SearchRequest, conn=Depends(get_db_connection)):
     """Accepts a query and k, returns the top k similar documents."""
     log = logger.bind(query=request.query, k=request.k)
     log.info("Search request received.")
-
+    # the commented lines are related to the dense retrieval, hence commented out for the bm25 retrieval
     #if "model" not in app_state or app_state["model"] is None:
     #    log.error("Search request failed because model is not loaded.")
     #    raise HTTPException(status_code=503, detail="Model is not loaded yet.")
@@ -82,3 +82,21 @@ def perform_search(request: SearchRequest, conn=Depends(get_db_connection)):
     except Exception as e:
         log.error("An unexpected error occurred during search.", error=str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {e}")
+    
+@app.get("/health")
+def health_check(conn=Depends(get_db_connection)):
+    """
+    Performs a deep health check on the service's dependencies.
+    1. Checks database connectivity.
+    2. Checks table and column schema.
+    """
+    try:
+        # The get_db_connection dependency already checks connectivity.
+        # Now, we check the schema.
+        search_logic.check_database_schema(conn)
+        return {"status": "ok", "message": "All dependencies are healthy."}
+    except (ConnectionError, ValueError) as e:
+        # Log the specific error for debugging
+        logger.error("Health check failed", error=str(e))
+        # Return a 503 Service Unavailable, which is standard for failing health checks
+        raise HTTPException(status_code=503, detail=str(e))
