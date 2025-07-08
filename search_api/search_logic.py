@@ -3,7 +3,7 @@ import psycopg2
 from pgvector.psycopg2 import register_vector
 from .database import TABLE_NAME
 from .models import SearchResult
-
+import re
 def search_db(query: str, k: int, model, conn):
     """
     Performs a BM25-style keyword search using PostgreSQL Full-Text Search.
@@ -12,10 +12,14 @@ def search_db(query: str, k: int, model, conn):
     The 'model' parameter is accepted to maintain a consistent interface
     but is NOT used in this function.
     """
-    try:
+    try:        
+        query_words = re.findall(r'\w+', query)
+        if not query_words:
+            return {"query_time": 0, "results": []}
+            
+        formatted_query = " | ".join(query_words)
         with conn.cursor() as cur:
             start_time = time.time()
-
             sql_query = f"""
             SELECT 
                 content, 
@@ -24,16 +28,15 @@ def search_db(query: str, k: int, model, conn):
                 source_id, 
                 chunk_id, 
                 language, 
-                ts_rank_cd(ts_content, plainto_tsquery('english', %s)) AS relevance
+                ts_rank_cd(ts_content, to_tsquery('english', %s)) AS relevance
             FROM {TABLE_NAME}
             WHERE 
-                ts_content @@ plainto_tsquery('english', %s)
+                ts_content @@ to_tsquery('english', %s)
             ORDER BY 
                 relevance DESC
             LIMIT %s;
             """
-            
-            cur.execute(sql_query, (query, query, k))
+            cur.execute(sql_query, (formatted_query, formatted_query, k))
             end_time = time.time()
             
             query_duration = end_time - start_time
