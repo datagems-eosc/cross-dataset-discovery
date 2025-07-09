@@ -1,9 +1,39 @@
 import time
 import psycopg2
+import json 
 from pgvector.psycopg2 import register_vector
+from pyserini.search.lucene import LuceneSearcher 
 from .database import TABLE_NAME
 from .models import SearchResult
-import re
+
+def search_pyserini_index(query: str, k: int, searcher: LuceneSearcher) -> dict:
+    """
+    Performs a search on the pre-built Pyserini Lucene index.
+    """
+    start_time = time.time()
+    hits = searcher.search(query, k=k)
+    end_time = time.time()
+
+    query_duration = end_time - start_time
+
+    results_list = []
+    for hit in hits:
+        raw_doc_str = hit.lucene_document.get("raw")
+        if raw_doc_str:
+            doc_data = json.loads(raw_doc_str)
+            results_list.append(
+                SearchResult(
+                    content=doc_data.get("content"),
+                    use_case=doc_data.get("use_case"),
+                    source=doc_data.get("source"),
+                    source_id=doc_data.get("source_id"),
+                    chunk_id=doc_data.get("chunk_id"),
+                    language=doc_data.get("language"),
+                    distance=hit.score 
+                )
+            )
+
+    return {"query_time": query_duration, "results": results_list}
 
 def search_db(query: str, k: int, model, conn):
     """

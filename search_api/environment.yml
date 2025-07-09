@@ -1,0 +1,12 @@
+name: cros_dataset_discovery_env
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pip
+  - openjdk=11
+  - c-compiler
+  - cxx-compiler
+  - cmake
+  - numpy
+  - psycopg2

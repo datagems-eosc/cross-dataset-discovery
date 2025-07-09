@@ -1,5 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException, Request
 from contextlib import asynccontextmanager
+import os
+from pyserini.search.lucene import LuceneSearcher 
 from sentence_transformers import SentenceTransformer
 import psycopg2
 from psycopg2.pool import SimpleConnectionPool
@@ -21,6 +23,20 @@ async def lifespan(app: FastAPI):
     #logger.info("Loading SentenceTransformer model...")
     #app_state["model"] = SentenceTransformer('BAAI/bge-m3')
     #logger.info("Model loaded successfully.")
+    index_path = os.getenv("PYSERINI_INDEX_PATH")
+    if not index_path:
+        logger.fatal("PYSERINI_INDEX_PATH environment variable not set.")
+        app_state["searcher"] = None
+    else:
+        try:
+            logger.info("Loading Pyserini LuceneSearcher...", index_path=index_path)
+            searcher = LuceneSearcher(index_path)
+            searcher.set_language('en') # IMPORTANT: As per your example
+            app_state["searcher"] = searcher
+            logger.info("Pyserini LuceneSearcher loaded successfully.")
+        except Exception as e:
+            logger.fatal("Could not load Pyserini LuceneSearcher", error=str(e))
+            app_state["searcher"] = None
 
     logger.info("Creating database connection pool...")
     try:
@@ -65,7 +81,7 @@ def read_root():
 @app.post("/search/", response_model=SearchResponse)
 def perform_search(
     request: SearchRequest, 
-    conn=Depends(get_db_connection),
+    #conn=Depends(get_db_connection),
     claims: dict = Depends(security.require_role(["user", "dg_user"])) # protect the endpoint with JWT authentication, checkkig for user or dg_user roles
 ):
     """Accepts a query and k, returns the top k similar documents."""
@@ -76,15 +92,22 @@ def perform_search(
     #if "model" not in app_state or app_state["model"] is None:
     #    log.error("Search request failed because model is not loaded.")
     #    raise HTTPException(status_code=503, detail="Model is not loaded yet.")
+    if "searcher" not in app_state or app_state["searcher"] is None:
+        log.error("Search request failed because Pyserini searcher is not loaded.")
+        raise HTTPException(status_code=503, detail="Searcher is not loaded yet.")
+
     user_permissions = set(claims.get("datasets", []))
     try:
-        search_results_data = search_logic.search_db(request.query, request.k, None, conn)
-        #  filter the results based on the users permissions
+        # CHANGED: Call the new Pyserini search function
+        searcher = app_state["searcher"]
+        search_results_data = search_logic.search_pyserini_index(request.query, request.k, searcher)
+        
+        # This authorization logic remains exactly the same, which is great!
         authorized_results = []
         for result in search_results_data["results"]:
             required_permission = f"/dataset/group/{result.use_case}/search"
             if required_permission in user_permissions:
-                authorized_results.append(API_SearchResult(**result.model_dump()))  #pydantic will ignore the use_case field
+                authorized_results.append(result)
             else:
                 log.warning(
                     "Result filtered due to missing permission",
@@ -103,27 +126,17 @@ def perform_search(
         )
         return SearchResponse(**final_response)
 
-    except psycopg2.Error as e:
-        log.error("Database query failed during search.", error=str(e))
-        raise HTTPException(status_code=500, detail=f"Database query failed: {e}")
     except Exception as e:
         log.error("An unexpected error occurred during search.", error=str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {e}")
-    
+
 @app.get("/health")
 def health_check(conn=Depends(get_db_connection)):
-    """
-    Performs a deep health check on the service's dependencies.
-    1. Checks database connectivity.
-    2. Checks table and column schema.
-    """
     try:
-        # The get_db_connection dependency already checks connectivity.
-        # Now, we check the schema.
         search_logic.check_database_schema(conn)
+        if "searcher" not in app_state or app_state["searcher"] is None:
+            raise ConnectionError("Pyserini searcher is not loaded.")
         return {"status": "ok", "message": "All dependencies are healthy."}
     except (ConnectionError, ValueError) as e:
-        # Log the specific error for debugging
         logger.error("Health check failed", error=str(e))
-        # Return a 503 Service Unavailable, which is standard for failing health checks
         raise HTTPException(status_code=503, detail=str(e))

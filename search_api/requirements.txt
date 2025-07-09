@@ -6,15 +6,15 @@ structlog
 
 # ML & Data
 sentence-transformers
-numpy
+pyserini
 
 # Database
-psycopg2-binary
 pgvector
 
+# Utilities
 python-dotenv
 
-#Authentication 
+# Authentication
 python-jose[cryptography]
 python-multipart
 httpx
