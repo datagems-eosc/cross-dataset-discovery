@@ -4,6 +4,7 @@ from pgvector.psycopg2 import register_vector
 from .database import TABLE_NAME
 from .models import SearchResult
 import re
+
 def search_db(query: str, k: int, model, conn):
     """
     Performs a BM25-style keyword search using PostgreSQL Full-Text Search.
@@ -13,15 +14,29 @@ def search_db(query: str, k: int, model, conn):
     but is NOT used in this function.
     """
     try:
-        query_words = re.findall(r'\w+', query)
+        # Clean and validate input
+        query = query.strip()
+        if not query:
+            return {"query_time": 0, "results": []}
+        
+        # Extract words and create different query types
+        query_words = re.findall(r'\w+', query.lower())
         if not query_words:
             return {"query_time": 0, "results": []}
+        
+        # Create OR query for individual words (broader match)
         or_query = " | ".join(query_words)
-        phrase_query = query 
-
+        
+        # Use the original query for phrase search (exact phrase match)
+        phrase_query = query
+        
+        # Create AND query for stricter matching
+        and_query = " & ".join(query_words)
 
         with conn.cursor() as cur:
             start_time = time.time()
+            
+            # Use parameterized query to prevent SQL injection
             sql_query = f"""
             SELECT 
                 content, 
@@ -30,19 +45,46 @@ def search_db(query: str, k: int, model, conn):
                 source_id, 
                 chunk_id, 
                 language, 
-                (ts_rank_cd(ts_content, to_tsquery('english', %s)) + 
-                 ts_rank_cd(ts_content, phraseto_tsquery('english', %s)) * 5) AS relevance
+                (
+                    -- Phrase match gets highest weight
+                    CASE 
+                        WHEN ts_content @@ phraseto_tsquery('english', %s) 
+                        THEN ts_rank_cd(ts_content, phraseto_tsquery('english', %s)) * 10
+                        ELSE 0 
+                    END +
+                    -- AND query gets medium weight (all words must be present)
+                    CASE 
+                        WHEN ts_content @@ to_tsquery('english', %s) 
+                        THEN ts_rank_cd(ts_content, to_tsquery('english', %s)) * 3
+                        ELSE 0 
+                    END +
+                    -- OR query gets base weight (any word can match)
+                    CASE 
+                        WHEN ts_content @@ to_tsquery('english', %s) 
+                        THEN ts_rank_cd(ts_content, to_tsquery('english', %s)) * 1
+                        ELSE 0 
+                    END
+                ) AS relevance
             FROM {TABLE_NAME}
             WHERE 
-                ts_content @@ to_tsquery('english', %s)
+                ts_content @@ to_tsquery('english', %s) OR 
+                ts_content @@ to_tsquery('english', %s) OR
+                ts_content @@ phraseto_tsquery('english', %s)
             ORDER BY 
                 relevance DESC
             LIMIT %s;
             """
             
-            cur.execute(sql_query, (or_query, phrase_query, or_query, k))
-            end_time = time.time()
+            # Execute with proper parameter binding
+            cur.execute(sql_query, (
+                phrase_query, phrase_query,  # phrase match params
+                and_query, and_query,        # and match params  
+                or_query, or_query,          # or match params
+                or_query, and_query, phrase_query,  # WHERE clause params
+                k
+            ))
             
+            end_time = time.time()
             query_duration = end_time - start_time
             
             rows = cur.fetchall()
@@ -60,9 +102,14 @@ def search_db(query: str, k: int, model, conn):
             ]
             
             return {"query_time": query_duration, "results": results_list}
+            
     except psycopg2.Error as e:
         print(f"Database error: {e}")
         raise
+    except Exception as e:
+        print(f"Unexpected error in search: {e}")
+        raise
+
     
 def search_db_embedding(query: str, k: int, model, conn):
     """
