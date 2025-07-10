@@ -15,5 +15,5 @@ RUN chown -R $MAMBA_USER:$MAMBA_USER /app && \
     mkdir -p /app/pyserini_indexes
 USER $MAMBA_USER
 EXPOSE 8000
-ENTRYPOINT ["micromamba", "run", "-n", "cross-dataset-discovery-env", "--"]
-CMD ["gunicorn", "-w", "1", "-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:8000", "search_api.main:app"]
+ENTRYPOINT ["micromamba", "run", "-n", "cross-dataset-discovery-env", "--", "gunicorn", "-w", "1", "-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:8000", "search_api.main:app"]
+CMD []
