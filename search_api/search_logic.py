@@ -3,6 +3,39 @@ import psycopg2
 from pgvector.psycopg2 import register_vector
 from .database import TABLE_NAME
 from .models import SearchResult
+from pyserini.search.lucene import LuceneSearcher
+
+
+
+def search_bm25(query: str, k: int, searcher: LuceneSearcher) -> dict:
+    """
+    Performs a BM25 search using a pre-initialized Pyserini LuceneSearcher.
+    """
+    start_time = time.time()
+    
+    # Perform the search
+    hits = searcher.search(query, k=k)
+    
+    end_time = time.time()
+    query_duration = end_time - start_time
+
+    results_list = []
+    for hit in hits:
+        # The raw document is stored as a JSON string in the 'raw' field
+        raw_doc = json.loads(hit.lucene_document.get("raw"))
+        result = SearchResult(
+            content=raw_doc.get("contents"),
+            use_case=raw_doc.get("use_case"),
+            source=raw_doc.get("source"),
+            source_id=raw_doc.get("source_id"),
+            chunk_id=int(raw_doc.get("chunk_id")),
+            language=raw_doc.get("language"),
+            distance=hit.score 
+        )
+        results_list.append(result)
+
+    return {"query_time": query_duration, "results": results_list}
+
 
 def search_db(query: str, k: int, model, conn):
     """
