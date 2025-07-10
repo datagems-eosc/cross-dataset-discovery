@@ -11,7 +11,7 @@ pyserini
 
 # Database
 psycopg2-binary
-# pgvector # No longer needed for BM25
+pgvector # No longer needed for BM25
 
 python-dotenv
 

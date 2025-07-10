@@ -1,6 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException, Request
 from contextlib import asynccontextmanager
-from sentence_transformers import SentenceTransformer
 import psycopg2
 from psycopg2.pool import SimpleConnectionPool
 import structlog
