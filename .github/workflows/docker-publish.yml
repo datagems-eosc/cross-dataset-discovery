@@ -7,8 +7,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  INDEX_RELEASE_TAG: v1.5.0
-  INDEX_FILE_NAME: pyserini_indexes.tar.gz
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   build-and-push:
@@ -20,28 +19,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Cache and Restore Pyserini Indexes
-        id: cache-indexes
-        uses: actions/cache@v4
-        with:
-          path: ./pyserini_indexes
-          key: ${{ runner.os }}-pyserini-indexes-${{ env.INDEX_RELEASE_TAG }}
-
-      - name: Download and Extract Indexes (if not cached)
-        if: steps.cache-indexes.outputs.cache-hit != 'true'
-        run: |
-          # This URL uses the github.repository variable to be dynamic and correct.
-          INDEX_URL="https://github.com/${{ github.repository }}/releases/download/${{ env.INDEX_RELEASE_TAG }}/${{ env.INDEX_FILE_NAME }}"
-          
-          echo "Cache not found for tag '${{ env.INDEX_RELEASE_TAG }}'. Downloading indexes..."
-          curl -L -o ${{ env.INDEX_FILE_NAME }} $INDEX_URL
-          
-          echo "Extracting indexes..."
-          tar -xzf ${{ env.INDEX_FILE_NAME }}
-          
-          echo "Cleaning up archive..."
-          rm ${{ env.INDEX_FILE_NAME }}
 
       - name: Log in to the Container registry
         uses: docker/login-action@v3
