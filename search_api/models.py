@@ -16,8 +16,8 @@ class SearchResult(BaseModel):
 
 class API_SearchResult(BaseModel):
     content: str
-    source: str
-    source_id: str
+    dataset_id: str = Field(validation_alias="source")
+    object_id: str = Field(validation_alias="source_id")
     chunk_id: int
     language: str
     distance: float
