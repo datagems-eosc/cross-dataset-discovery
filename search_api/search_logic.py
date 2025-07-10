@@ -5,8 +5,6 @@ from .database import TABLE_NAME
 from .models import SearchResult
 from pyserini.search.lucene import LuceneSearcher
 
-
-
 def search_bm25(query: str, k: int, searcher: LuceneSearcher) -> dict:
     """
     Performs a BM25 search using a pre-initialized Pyserini LuceneSearcher.

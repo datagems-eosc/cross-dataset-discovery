@@ -92,6 +92,7 @@ def perform_search(
     user_permissions = set(claims.get("datasets", []))
     try:
         search_results_data = search_logic.search_bm25(request.query, request.k, searcher)
+        log.info(f"Used BM25 and retireved {len(search_results_data['results'])} results.", query_time=search_results_data["query_time"])
         authorized_results = []
         for result in search_results_data["results"]:
             required_permission = f"/dataset/group/{result.use_case}/search"
