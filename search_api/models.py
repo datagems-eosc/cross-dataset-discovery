@@ -18,8 +18,8 @@ class API_SearchResult(BaseModel):
     content: str
     dataset_id: str = Field(validation_alias="source")
     object_id: str = Field(validation_alias="source_id")
-    chunk_id: int
-    language: str
+    #chunk_id: int
+    #language: str
     distance: float
     
 class SearchResponse(BaseModel):
