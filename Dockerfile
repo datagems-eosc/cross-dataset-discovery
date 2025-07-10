@@ -7,8 +7,11 @@ RUN micromamba run -n cross-dataset-discovery-env pip install -r requirements.tx
 FROM mambaorg/micromamba:1.5.8-bookworm
 ARG MAMBA_ENV_NAME=cross-dataset-discovery-env
 COPY --from=builder /opt/conda/envs/${MAMBA_ENV_NAME} /opt/conda/envs/${MAMBA_ENV_NAME}
-COPY . .
 WORKDIR /app
-ENTRYPOINT ["micromamba", "run", "-n", "cross-dataset-discovery-env", "--"]
+COPY . .
+RUN micromamba run -n cross-dataset-discovery-env pip install gunicorn
+RUN mkdir -p /app/pyserini_indexes && \
+    chown -R $MAMBA_USER:$MAMBA_USER /app
 EXPOSE 8000
-CMD gunicorn -w 1 -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000 search_api.main:app
+ENTRYPOINT ["micromamba", "run", "-n", "cross-dataset-discovery-env", "--"]
+CMD ["gunicorn", "-w", "1", "-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:8000", "search_api.main:app"]
