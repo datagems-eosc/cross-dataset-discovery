@@ -1,12 +1,9 @@
-name: cros_dataset_discovery_env
+name: cross-dataset-discovery-env
 channels:
   - conda-forge
 dependencies:
   - python=3.11
   - pip
-  - openjdk=11
-  - c-compiler
-  - cxx-compiler
-  - cmake
+  - openjdk=21
   - numpy
   - psycopg2

@@ -5,17 +5,12 @@ gunicorn
 structlog
 
 # ML & Data
-# sentence-transformers # No longer needed for BM25
-numpy
 pyserini
 
-# Database
-psycopg2-binary
-pgvector # No longer needed for BM25
-
+# General
 python-dotenv
 
-#Authentication 
+# Authentication
 python-jose[cryptography]
 python-multipart
 httpx
