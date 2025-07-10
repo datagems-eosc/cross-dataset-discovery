@@ -7,7 +7,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  INDEX_RELEASE_TAG: v1.4.0
+  INDEX_RELEASE_TAG: v1.4.1
   INDEX_FILE_NAME: pyserini_indexes.tar.gz
 
 jobs:
