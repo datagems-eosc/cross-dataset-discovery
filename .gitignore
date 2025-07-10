@@ -142,3 +142,4 @@ cython_debug/
 deployment/**/*.secret.*.yaml
 
 pyserini_indexes/
+pyserini_indexes.tar.gz
