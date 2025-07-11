@@ -12,22 +12,22 @@ def search_bm25(query: str, k: int, searcher: LuceneSearcher) -> dict:
     """
     start_time = time.time()
     
-    # Perform the search
     hits = searcher.search(query, k=k)
     
     end_time = time.time()
     query_duration = end_time - start_time
-
     results_list = []
-    for hit in hits:
-        # The raw document is stored as a JSON string in the 'raw' field
+    for i, hit in enumerate(hits):
         raw_doc = json.loads(hit.lucene_document.get("raw"))
+        if "contents" not in raw_doc or "use_case" not in raw_doc:
+            logger.warning("Skipping hit due to missing required fields.", hit_number=i, doc_id=hit.docid)
+            continue
         result = SearchResult(
             content=raw_doc.get("contents"),
             use_case=raw_doc.get("use_case"),
             source=raw_doc.get("source"),
             source_id=raw_doc.get("source_id"),
-            chunk_id=int(raw_doc.get("chunk_id")),
+            chunk_id=int(raw_doc.get("chunk_id", 0)), 
             language=raw_doc.get("language"),
             distance=hit.score 
         )

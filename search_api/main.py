@@ -76,7 +76,6 @@ def read_root():
 @app.post("/search/", response_model=SearchResponse)
 def perform_search(
     request: SearchRequest, 
-    # conn=Depends(get_db_connection), # No longer need DB connection for search
     claims: dict = Depends(security.require_role(["user", "dg_user"]))
 ):
     """Accepts a query and k, returns the top k similar documents using BM25."""
@@ -97,7 +96,7 @@ def perform_search(
         for result in search_results_data["results"]:
             required_permission = f"/dataset/group/{result.use_case}/search"
             if required_permission in user_permissions:
-                authorized_results.append(API_SearchResult.model_validate(result))
+                authorized_results.append(API_SearchResult.model_validate(result.model_dump()))
             else:
                 log.warning(
                     "Result filtered due to missing permission",
