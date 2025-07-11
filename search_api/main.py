@@ -9,6 +9,7 @@ from .models import SearchRequest, SearchResponse, SearchResult, API_SearchResul
 from .logging_config import setup_logging, correlation_id_middleware, request_response_logging_middleware
 from . import security
 from pyserini.search.lucene import LuceneSearcher
+import os
 setup_logging()
 logger = structlog.get_logger(__name__)
 
