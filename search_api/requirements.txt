@@ -6,6 +6,8 @@ structlog
 
 # ML & Data
 pyserini
+numpy
+psycopg2-binary
 
 # General
 python-dotenv
