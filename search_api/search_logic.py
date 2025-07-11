@@ -4,6 +4,7 @@ from pgvector.psycopg2 import register_vector
 from .database import TABLE_NAME
 from .models import SearchResult
 from pyserini.search.lucene import LuceneSearcher
+import json 
 
 def search_bm25(query: str, k: int, searcher: LuceneSearcher) -> dict:
     """
