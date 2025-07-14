@@ -401,7 +401,7 @@ kubectl apply -f search-api.ingress.yaml -n athenarc
 
 After deploying and creating the database index, you can send a request to the search endpoint to verify that the service is operational.
 
-### Example Request
+### Example Request (outdated, you need access token)
 
 ```bash
 curl -X POST "https://datagems-dev.scayle.es/cross-dataset-discovery/search/" \
