@@ -1,10 +1,12 @@
 import time
 import psycopg2
 from pgvector.psycopg2 import register_vector
+from mxbai_rerank import MxbaiRerankV2
 from .database import TABLE_NAME
 from .models import SearchResult
 from pyserini.search.lucene import LuceneSearcher
 import json 
+import structlog
 
 def search_bm25(query: str, k: int, searcher: LuceneSearcher) -> dict:
     """
