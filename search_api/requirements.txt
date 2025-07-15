@@ -5,10 +5,9 @@ gunicorn
 structlog
 
 # ML & Data
-pyserini
 numpy
 torch
-mxbai-rerank
+sentence-transformers
 psycopg2-binary
 pgvector
 
