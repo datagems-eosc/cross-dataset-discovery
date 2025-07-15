@@ -11,15 +11,18 @@ RUN wget -O /tmp/openjdk.tar.gz ${JDK_URL} && \
 ENV JAVA_HOME=${JAVA_INSTALL_DIR}
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
 WORKDIR /app
+ENV HF_HOME=/app/.cache
 COPY ./search_api/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
+RUN python -c "from mxbai_rerank import MxbaiRerankV2; MxbaiRerankV2('mixedbread-ai/mxbai-rerank-large-v2')"
 FROM python:3.11-slim AS final
-
 WORKDIR /app
 ARG JAVA_INSTALL_DIR=/opt/java/openjdk
 COPY --from=builder ${JAVA_INSTALL_DIR} ${JAVA_INSTALL_DIR}
+ENV HF_HOME=/app/.cache
 ENV JAVA_HOME=${JAVA_INSTALL_DIR}
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
+COPY --from=builder /app/.cache /app/.cache
 COPY --from=builder /usr/local/lib/python3.11/site-packages/ /usr/local/lib/python3.11/site-packages/
 COPY --from=builder /usr/local/bin/ /usr/local/bin/
 COPY . .

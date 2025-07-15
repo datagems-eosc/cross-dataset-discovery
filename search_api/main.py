@@ -8,6 +8,7 @@ from . import database
 from .models import SearchRequest, SearchResponse, SearchResult, API_SearchResult 
 from .logging_config import setup_logging, correlation_id_middleware, request_response_logging_middleware
 from . import security
+from mxbai_rerank import MxbaiRerankV2
 from pyserini.search.lucene import LuceneSearcher
 import os
 setup_logging()
@@ -32,6 +33,16 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logger.fatal("Failed to load Pyserini LuceneSearcher", error=str(e), exc_info=True)
             app_state["searcher"] = None
+
+    logger.info("Loading mxbai reranker model...")
+    try:
+        reranker = MxbaiRerankV2("mixedbread-ai/mxbai-rerank-large-v2")
+        app_state["reranker"] = reranker
+        logger.info("mxbai reranker model loaded successfully.")
+    except Exception as e:
+        logger.fatal("Failed to load mxbai reranker model", error=str(e), exc_info=True)
+        app_state["reranker"] = None
+
     logger.info("Creating database connection pool...")
     try:
         database.connection_pool = SimpleConnectionPool(minconn=1, maxconn=2, dsn=database.CONNECTION_STRING)
@@ -84,14 +95,21 @@ def perform_search(
     log.info("Search request received.")
 
     searcher = app_state.get("searcher")
-    if not searcher:
-        log.error("Search request failed because Pyserini searcher is not available.")
+    reranker = app_state.get("reranker")
+    if not searcher or not reranker:
+        log.error(
+            "Search request failed because a search component is not available.",
+            searcher_ready=bool(searcher),
+            reranker_ready=bool(reranker)
+        )
         raise HTTPException(status_code=503, detail="Search service is not available.")
 
     user_permissions = set(claims.get("datasets", []))
     try:
-        search_results_data = search_logic.search_bm25(request.query, request.k, searcher)
-        log.info(f"Used BM25 and retireved {len(search_results_data['results'])} results.", query_time=search_results_data["query_time"])
+        search_results_data = search_logic.search_with_rerank(
+            request.query, request.k, searcher, reranker
+        )
+        log.info(f"Used BM25 and reranker to retrieve {len(search_results_data['results'])} results.", query_time=search_results_data["query_time"])
         authorized_results = []
         for result in search_results_data["results"]:
             required_permission = f"/dataset/group/{result.use_case}/search"

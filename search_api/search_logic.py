@@ -20,7 +20,6 @@ def search_bm25(query: str, k: int, searcher: LuceneSearcher) -> dict:
     for i, hit in enumerate(hits):
         raw_doc = json.loads(hit.lucene_document.get("raw"))
         if "contents" not in raw_doc or "use_case" not in raw_doc:
-            logger.warning("Skipping hit due to missing required fields.", hit_number=i, doc_id=hit.docid)
             continue
         result = SearchResult(
             content=raw_doc.get("contents"),
@@ -35,6 +34,47 @@ def search_bm25(query: str, k: int, searcher: LuceneSearcher) -> dict:
 
     return {"query_time": query_duration, "results": results_list}
 
+def search_with_rerank(query: str, k: int, searcher: LuceneSearcher, reranker: MxbaiRerankV2) -> dict:
+    """
+    Performs a hybrid search:
+    1. Retrieves an initial set of candidates using BM25.
+    2. Reranks the candidates using a powerful cross-encoder model.
+    """
+    log = structlog.get_logger(__name__)
+    total_start_time = time.time()
+
+    # 1. Initial retrieval (fetch 5x more documents for the reranker)
+    rerank_multiplier = 5
+    initial_k = k * rerank_multiplier
+    log.info("Step 1: Initial retrieval with BM25", initial_k=initial_k)
+    bm25_results_data = search_bm25(query, initial_k, searcher)
+    initial_results = bm25_results_data["results"]
+
+    if not initial_results:
+        log.info("BM25 returned no results. Skipping reranking.")
+        return {"query_time": bm25_results_data["query_time"], "results": []}
+
+    # 2. Rerank the results
+    log.info("Step 2: Reranking candidates", num_candidates=len(initial_results))
+    documents_to_rerank = [res.content for res in initial_results]
+    
+    reranked_scores = reranker.rank(
+        query=query,
+        documents=documents_to_rerank,
+        return_documents=False,
+        top_k=k
+    )
+
+    # 3. Construct final list from reranked results
+    final_results = []
+    for score_info in reranked_scores:
+        reranked_result = initial_results[score_info['corpus_id']]
+        reranked_result.distance = score_info['score'] # Update distance with the new, more accurate score
+        final_results.append(reranked_result)
+
+    total_duration = time.time() - total_start_time
+    log.info("Hybrid search complete.", total_duration=total_duration, final_results_count=len(final_results))
+    return {"query_time": total_duration, "results": final_results}
 
 def search_db(query: str, k: int, model, conn):
     """
@@ -88,7 +128,7 @@ def search_db(query: str, k: int, model, conn):
     except psycopg2.Error as e:
         print(f"Database error: {e}")
         raise
-    
+
 def search_db_embedding(query: str, k: int, model, conn):
     """
     Computes the embedding and retrieves k similar results from PostgreSQL.
