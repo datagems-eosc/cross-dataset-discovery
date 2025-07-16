@@ -79,11 +79,18 @@ def require_role(required_roles: List[str]):
         
         # Check for any intersection between the user's roles and the required roles
         if not user_roles.intersection(required_roles):
+            log_context = {
+                "required_roles": required_roles,
+                "UserId": claims.get("sub"),
+                "user_roles": list(user_roles)
+            }
+            client_id = claims.get("clientid")
+            if client_id:
+                log_context["ClientId"] = client_id
+
             logger.warning(
                 "Authorization failed: User missing any of the required roles",
-                required_roles=required_roles,
-                user_subject=claims.get("sub"),
-                user_roles=list(user_roles) 
+                **log_context
             )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

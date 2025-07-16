@@ -8,9 +8,8 @@ from . import database
 from .models import SearchRequest, SearchResponse, SearchResult, API_SearchResult 
 from .logging_config import setup_logging, correlation_id_middleware, request_response_logging_middleware
 from . import security
-from sentence_transformers import SentenceTransformer
+from pyserini.search.lucene import LuceneSearcher
 import os
-
 setup_logging()
 logger = structlog.get_logger(__name__)
 
@@ -19,17 +18,20 @@ app_state = {}
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Application startup sequence initiated.")
-    
-    logger.info("Loading BGE-M3 embedding model...")
-    model_name = "BAAI/bge-m3"
-    try:
-        embedding_model = SentenceTransformer(model_name)
-        app_state["embedding_model"] = embedding_model
-        logger.info("BGE-M3 embedding model loaded successfully.")
-    except Exception as e:
-        logger.fatal("Failed to load embedding model", model=model_name, error=str(e), exc_info=True)
-        app_state["embedding_model"] = None
-
+    index_path = os.getenv("PYSERINI_INDEX_PATH")
+    if not index_path or not os.path.exists(index_path):
+        logger.fatal("Pyserini index path not found or not configured. Set PYSERINI_INDEX_PATH.", path=index_path)
+        app_state["searcher"] = None
+    else:
+        try:
+            logger.info("Loading Pyserini LuceneSearcher...", index_path=index_path)
+            searcher = LuceneSearcher(index_path)
+            searcher.set_language('en')
+            app_state["searcher"] = searcher
+            logger.info("Pyserini LuceneSearcher loaded successfully.")
+        except Exception as e:
+            logger.fatal("Failed to load Pyserini LuceneSearcher", error=str(e), exc_info=True)
+            app_state["searcher"] = None
     logger.info("Creating database connection pool...")
     try:
         database.connection_pool = SimpleConnectionPool(minconn=1, maxconn=2, dsn=database.CONNECTION_STRING)
@@ -74,24 +76,27 @@ def read_root():
 @app.post("/search/", response_model=SearchResponse)
 def perform_search(
     request: SearchRequest, 
-    claims: dict = Depends(security.require_role(["user", "dg_user"])),
-    conn=Depends(get_db_connection)
+    claims: dict = Depends(security.require_role(["user", "dg_user"]))
 ):
-    """Accepts a query and k, returns the top k similar documents using dense retrieval."""
+    """Accepts a query and k, returns the top k similar documents using BM25."""
     user_subject = claims.get("sub")
-    log = logger.bind(query=request.query, k=request.k, user_subject=user_subject)
-    log.info("Dense search request received.")
+    client_id = claims.get("clientid")
+    
+    log = logger.bind(query=request.query, k=request.k, UserId=user_subject)
+    if client_id:
+        log = log.bind(ClientId=client_id)
 
-    model = app_state.get("embedding_model")
-    if not model:
-        log.error("Search request failed because the embedding model is not available.")
+    log.info("Search request received.")
+
+    searcher = app_state.get("searcher")
+    if not searcher:
+        log.error("Search request failed because Pyserini searcher is not available.")
         raise HTTPException(status_code=503, detail="Search service is not available.")
 
     user_permissions = set(claims.get("datasets", []))
     try:
-        search_results_data = search_logic.search_dense(request.query, request.k, model, conn)
-        log.info(f"Used dense retrieval to find {len(search_results_data['results'])} results.", query_time=search_results_data["query_time"])
-        
+        search_results_data = search_logic.search_bm25(request.query, request.k, searcher)
+        log.info(f"Used BM25 and retireved {len(search_results_data['results'])} results.", query_time=search_results_data["query_time"])
         authorized_results = []
         for result in search_results_data["results"]:
             required_permission = f"/dataset/group/{result.use_case}/search"
@@ -123,19 +128,17 @@ def perform_search(
 def health_check(conn=Depends(get_db_connection)):
     """
     Performs a deep health check on the service's dependencies.
-    1. Checks if the embedding model is loaded.
+    1. Checks if Pyserini searcher is loaded.
     2. Checks database connectivity and schema.
     """
-    model = app_state.get("embedding_model")
-    if not model:
-        logger.error("Health check failed: Embedding model is not loaded.")
-        raise HTTPException(status_code=503, detail="Embedding model is not available.")
+    if not app_state.get("searcher"):
+        logger.error("Health check failed: Pyserini searcher is not loaded.")
+        raise HTTPException(status_code=503, detail="Pyserini searcher is not available.")
     try:
-        model.encode("health check")
+        app_state["searcher"].search("health check", k=1)
     except Exception as e:
-        logger.error("Health check failed: Embedding model dummy encoding failed.", error=str(e))
-        raise HTTPException(status_code=503, detail=f"Embedding model is not responsive: {e}")
-
+        logger.error("Health check failed: Pyserini dummy search failed.", error=str(e))
+        raise HTTPException(status_code=503, detail=f"Pyserini index is not accessible: {e}")
     try:
         search_logic.check_database_schema(conn)
         return {"status": "ok", "message": "All dependencies are healthy."}
