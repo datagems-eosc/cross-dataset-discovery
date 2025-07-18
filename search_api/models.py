@@ -20,7 +20,7 @@ class API_SearchResult(BaseModel):
     object_id: str = Field(validation_alias="source_id")
     #chunk_id: int
     #language: str
-    distance: float
+    similarity: float = Field(validation_alias="distance")
     
 class SearchResponse(BaseModel):
     query_time: float
