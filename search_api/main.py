@@ -49,7 +49,16 @@ async def lifespan(app: FastAPI):
     app_state.clear()
     logger.info("Shutdown complete.")
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(
+    lifespan=lifespan,
+    title="Cross-Dataset Discovery API",
+    description="An API for performing cross-dataset discovery using BM25 index.",
+    version="1.0.0",
+    openapi_url="/api/v1/openapi.json",
+    docs_url="/docs",
+    redoc_url="/redoc"
+)
+
 app.middleware("http")(correlation_id_middleware)
 app.middleware("http")(request_response_logging_middleware)
 
