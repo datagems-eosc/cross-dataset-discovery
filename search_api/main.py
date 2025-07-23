@@ -54,9 +54,9 @@ app = FastAPI(
     title="Cross-Dataset Discovery API",
     description="An API for performing cross-dataset discovery using a BM25 index.",
     version="1.0.0",
-    openapi_url="/cross-dataset-discovery/openapi.json",
-    docs_url="/cross-dataset-discovery/docs",
-    redoc_url="/cross-dataset-discovery/redoc"
+    openapi_url="/openapi.json",
+    docs_url="/docs",            
+    redoc_url="/redoc"           
 )
 
 app.middleware("http")(correlation_id_middleware)
