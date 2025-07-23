@@ -52,11 +52,11 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     lifespan=lifespan,
     title="Cross-Dataset Discovery API",
-    description="An API for performing cross-dataset discovery using BM25 index.",
+    description="An API for performing cross-dataset discovery using a BM25 index.",
     version="1.0.0",
-    openapi_url="/api/v1/openapi.json",
-    docs_url="/docs",
-    redoc_url="/redoc"
+    openapi_url="/cross-dataset-discovery/openapi.json",
+    docs_url="/cross-dataset-discovery/docs",
+    redoc_url="/cross-dataset-discovery/redoc"
 )
 
 app.middleware("http")(correlation_id_middleware)
