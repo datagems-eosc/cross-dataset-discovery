@@ -408,4 +408,3 @@ kubectl get pods -n athenarc -w
 ```
 
 When the new pod is running successfully, the old one will terminate automatically.
-```
