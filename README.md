@@ -409,17 +409,3 @@ kubectl get pods -n athenarc -w
 
 When the new pod is running successfully, the old one will terminate automatically.
 ```
-
-### Response Structure
-
-A successful request will return a `200 OK` status and a JSON object with the following structure:
-
-- **`query_time`**: The time in seconds the database query took to execute
-- **`results`**: A list of result objects, sorted by relevance. Each result object contains:
-  - **`content`**: The text chunk that matched the query
-  - **`use_case`**: The use case category for the content (wikipedia, mathe)
-  - **`source`**: The source of the content (e.g., "wikipedia", "diderot")
-  - **`source_id`**: Unique identifier for the source document (the specific id of the document inside the source)
-  - **`chunk_id`**: Unique identifier for the specific text chunk inside the source_id document
-  - **`language`**: Language code of the content (e.g., "en")
-  - **`distance`**: The similarity score between the query and the result (smaller values indicate closer matches)
