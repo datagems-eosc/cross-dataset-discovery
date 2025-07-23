@@ -344,72 +344,70 @@ Below are the core components and libraries used:
 
 # Deployment
 
+## Prerequisites
 
-## 1. Build and Publish Docker Image
+Configure your kubectl with the instructions provided by CITE and set up the VPN to Scayle. 
 
-The application is containerized using the provided `Dockerfile`. A GitHub Actions workflow automates the build and push process to the GitHub Container Registry (`ghcr.io`).
-
-### Trigger the Build
-Create and push a Git tag to start the build workflow. The tag version should correspond to the image version you intend to deploy.
-
+Verify your configuration is working:
 ```bash
-git tag v1.0.1
-git push origin v1.0.1
+kubectl get pods -n athenarc
 ```
 
-### Create Personal Access Token (PAT)
-The cluster requires a GitHub Personal Access Token to pull the private Docker image. Generate a new PAT with the **`read:packages`** scope. You will need this token for the next step.
+You should see at least the `cross-dataset-discovery-api-...` pod listed.
 
-## 2. Create Kubernetes Secrets
+## Deploy Changes
 
-Deployment secrets are not stored in the repository and must be created manually.
+### 1. Prepare Your Code
 
-1. **Navigate to the Deployment Directory**
-   ```bash
-   cd deployment/search-api/
-   ```
+Clone both repositories:
+- This repo (current)
+- [Deployment repo](https://github.com/datagems-eosc/cross-dataset-discovery-deployment-dev)
 
-2. **Generate Secret Files**
-   Run the interactive script. It will prompt for your GitHub username, the PAT you just created, and the database credentials.
-   ```bash
-   ./generate-k8s-secrets.sh
-   ```
-
-3. **Apply the Secrets**
-   Apply the generated files to the `athenarc` namespace in your cluster.
-   ```bash
-   kubectl apply -f search-api.secret.ghcr.yaml -n athenarc
-   kubectl apply -f search-api.secret.app.yaml -n athenarc
-   ```
-
-## 3. Deploy the Application
-
-Apply the following Kubernetes manifests. Ensure the `image` tag in `search-api.deployment.yaml` matches the version you built (e.g., `v1.0.1`).
-
+After making your changes, commit and tag:
 ```bash
-# Apply configuration and storage claim
-kubectl apply -f search-api.configmap.yaml -n athenarc
-kubectl apply -f search-api.volumes.yaml -n athenarc
-
-# Apply the core application manifests
-kubectl apply -f search-api.deployment.yaml -n athenarc
-kubectl apply -f search-api.service.yaml -n athenarc
-kubectl apply -f search-api.ingress.yaml -n athenarc
+git add .
+git commit -m "your commit message"
+git push
+git tag vx.y.z
+git push origin vx.y.z
 ```
 
-## 4. Verify the Deployment
+### 2. Build Image
 
-After deploying and creating the database index, you can send a request to the search endpoint to verify that the service is operational.
+Monitor the image build progress in the [GitHub Actions tab](https://github.com/datagems-eosc/cross-dataset-discovery/actions).
 
-### Example Request (outdated, you need access token)
+### 3. Deploy
 
+Navigate to the deployment repo:
 ```bash
-curl -X POST "https://datagems-dev.scayle.es/cross-dataset-discovery/search/" \
--H "Content-Type: application/json" \
--d '{
-      "query": "What is the fundamental theorem of calculus?",
-      "k": 3
-    }'
+cd ../cross-dataset-discovery-deployment-dev/
+```
+
+For simple changes that don't require configuration updates, edit the image tag in:
+```
+deployment/cross-dataset-discovery-api.deployment.yaml
+```
+
+Change this line:
+```yaml
+image: ghcr.io/datagems-eosc/cross-dataset-discovery-api:{tag}
+```
+
+Update `{tag}` to your new version.
+
+Apply the changes:
+```bash
+kubectl apply -f deployment/
+```
+
+### 4. Monitor Deployment
+
+Watch the pod status:
+```bash
+kubectl get pods -n athenarc -w
+```
+
+When the new pod is running successfully, the old one will terminate automatically.
 ```
 
 ### Response Structure
