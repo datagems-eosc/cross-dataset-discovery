@@ -55,9 +55,11 @@ app = FastAPI(
     description="An API for performing cross-dataset discovery using a BM25 index.",
     version="1.0.0",
     openapi_url="/openapi.json",
-    docs_url="/docs",            
-    redoc_url="/redoc"           
+    docs_url="/docs",
+    redoc_url="/redoc",
+    root_path=os.getenv("ROOT_PATH", "") 
 )
+
 
 app.middleware("http")(correlation_id_middleware)
 app.middleware("http")(request_response_logging_middleware)
