@@ -55,7 +55,7 @@ app = FastAPI(
     description="An API for performing cross-dataset discovery using a BM25 index.",
     version="1.0.0",
     openapi_url="/openapi.json",
-    docs_url="/swagger",
+    docs_url="/docs",
     redoc_url="/redoc",
     root_path=os.getenv("ROOT_PATH", "") 
 )
