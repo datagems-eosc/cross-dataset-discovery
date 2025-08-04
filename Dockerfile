@@ -16,6 +16,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 FROM python:3.11-slim AS final
 
 WORKDIR /app
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends wget && \
+    rm -rf /var/lib/apt/lists/* && \
+    groupadd -r appuser && useradd -r -g appuser appuser
+
 ARG JAVA_INSTALL_DIR=/opt/java/openjdk
 COPY --from=builder ${JAVA_INSTALL_DIR} ${JAVA_INSTALL_DIR}
 ENV JAVA_HOME=${JAVA_INSTALL_DIR}
@@ -24,5 +29,11 @@ COPY --from=builder /usr/local/lib/python3.11/site-packages/ /usr/local/lib/pyth
 COPY --from=builder /usr/local/bin/ /usr/local/bin/
 COPY . .
 
+RUN chown -R appuser:appuser /app
+USER appuser
+
+
 EXPOSE 8000
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD wget -q -O - http://localhost:8000/health || exit 1
 CMD ["gunicorn", "-w", "1", "-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:8000", "search_api.main:app"]
