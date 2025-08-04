@@ -1,4 +1,7 @@
-from fastapi import FastAPI, Depends, HTTPException, Request
+from fastapi import FastAPI, Depends, HTTPException, Request, status
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from pydantic import BaseModel
 from contextlib import asynccontextmanager
 import psycopg2
 from psycopg2.pool import SimpleConnectionPool
@@ -6,12 +9,45 @@ import structlog
 from . import search_logic
 from . import database 
 from .models import SearchRequest, SearchResponse, SearchResult, API_SearchResult 
-from .logging_config import setup_logging, correlation_id_middleware, request_response_logging_middleware
+from .logging_config import setup_logging, correlation_id_middleware, request_response_logging_middleware, get_correlation_id
 from . import security
 from pyserini.search.lucene import LuceneSearcher
 import os
+from typing import List, Optional, Any
+
 setup_logging()
 logger = structlog.get_logger(__name__)
+class ErrorResponse(BaseModel):
+    code: int
+    error: str
+
+class ValidationErrorDetail(BaseModel):
+    Key: str
+    Value: List[str]
+
+class ValidationErrorResponse(BaseModel):
+    code: int
+    error: str
+    message: List[ValidationErrorDetail]
+
+class FailedDependencyMessage(BaseModel):
+    statusCode: int
+    source: str
+    correlationId: Optional[str] = None
+    payload: Optional[Any] = None
+
+class FailedDependencyResponse(BaseModel):
+    code: int
+    error: str
+    message: FailedDependencyMessage
+
+class FailedDependencyException(HTTPException):
+    def __init__(self, source: str, status_code: int, detail: str, correlation_id: Optional[str] = None, payload: Optional[Any] = None):
+        self.source = source
+        self.downstream_status_code = status_code
+        self.correlation_id = correlation_id
+        self.downstream_payload = payload
+        super().__init__(status_code=status.HTTP_424_FAILED_DEPENDENCY, detail=detail)
 
 app_state = {}
 
@@ -61,6 +97,58 @@ app = FastAPI(
 )
 
 
+@app.exception_handler(FailedDependencyException)
+async def failed_dependency_exception_handler(request: Request, exc: FailedDependencyException):
+    response_content = FailedDependencyResponse(
+        code=104,
+        error="error communicating with underpinning service",
+        message=FailedDependencyMessage(
+            statusCode=exc.downstream_status_code,
+            source=exc.source,
+            correlationId=exc.correlation_id,
+            payload=exc.downstream_payload
+        )
+    )
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=response_content.model_dump(exclude_none=True),
+    )
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    details = []
+    for error in exc.errors():
+        key = ".".join(map(str, error.get("loc", [])))
+        if key.startswith("body."): # Clean up the key for better readability
+            key = key[5:]
+        message = error.get("msg", "Invalid input")
+        details.append(ValidationErrorDetail(Key=key, Value=[message]))
+
+    response_content = ValidationErrorResponse(
+        code=102, # As per spec example for validation errors
+        error="Validation Error",
+        message=details
+    )
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        content=response_content.model_dump(),
+    )
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    error_code_map = {
+        401: 401,
+        403: 403,
+        404: 404,
+        500: 500,
+    }
+    error_code = error_code_map.get(exc.status_code, exc.status_code)
+
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=ErrorResponse(code=error_code, error=exc.detail).model_dump(),
+    )
+
 app.middleware("http")(correlation_id_middleware)
 app.middleware("http")(request_response_logging_middleware)
 
@@ -68,7 +156,12 @@ def get_db_connection():
     """Dependency to get a database connection from the pool."""
     if database.connection_pool is None:
         logger.error("Database connection requested but pool is not available.")
-        raise HTTPException(status_code=503, detail="Database connection pool is not available.")
+        raise FailedDependencyException(
+            source="Database", 
+            status_code=503, 
+            detail="Database connection pool is not available.",
+            correlation_id=get_correlation_id()
+        )
     
     conn = None
     try:
@@ -104,7 +197,12 @@ def perform_search(
     searcher = app_state.get("searcher")
     if not searcher:
         log.error("Search request failed because Pyserini searcher is not available.")
-        raise HTTPException(status_code=503, detail="Search service is not available.")
+        raise FailedDependencyException(
+            source="PyseriniIndex", 
+            status_code=503, 
+            detail="Search service is not available.",
+            correlation_id=get_correlation_id()
+        )
 
     user_permissions = set(claims.get("datasets", []))
     try:
@@ -148,15 +246,15 @@ def health_check(conn=Depends(get_db_connection)):
     """
     if not app_state.get("searcher"):
         logger.error("Health check failed: Pyserini searcher is not loaded.")
-        raise HTTPException(status_code=503, detail="Pyserini searcher is not available.")
+        raise FailedDependencyException(source="PyseriniIndex", status_code=503, detail="Pyserini searcher is not available.", correlation_id=get_correlation_id())
     try:
         app_state["searcher"].search("health check", k=1)
     except Exception as e:
         logger.error("Health check failed: Pyserini dummy search failed.", error=str(e))
-        raise HTTPException(status_code=503, detail=f"Pyserini index is not accessible: {e}")
+        raise FailedDependencyException(source="PyseriniIndex", status_code=503, detail=f"Pyserini index is not accessible: {e}", correlation_id=get_correlation_id())
     try:
         search_logic.check_database_schema(conn)
         return {"status": "ok", "message": "All dependencies are healthy."}
     except (ConnectionError, ValueError) as e:
         logger.error("Health check failed", error=str(e))
-        raise HTTPException(status_code=503, detail=str(e))
+        raise FailedDependencyException(source="Database", status_code=503, detail=str(e), correlation_id=get_correlation_id())

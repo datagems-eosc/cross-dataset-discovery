@@ -4,6 +4,7 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 import structlog
 from . import auth_config
+from .logging_config import get_correlation_id
 from typing import List
 
 logger = structlog.get_logger(__name__)
@@ -12,6 +13,8 @@ _oidc_config = None
 _jwks_keys = None
 async def get_oidc_config():
     """Fetches and caches the OIDC discovery document."""
+    from .main import FailedDependencyException
+
     global _oidc_config
     if _oidc_config is None:
         try:
@@ -19,28 +22,75 @@ async def get_oidc_config():
                 response = await client.get(auth_config.OIDC_CONFIG_URL)
                 response.raise_for_status()
                 _oidc_config = response.json()
+        except httpx.HTTPStatusError as e:
+            logger.error("Failed to fetch OIDC configuration due to HTTP error", url=str(e.request.url), status_code=e.response.status_code, response=e.response.text)
+            try:
+                payload = e.response.json()
+            except Exception:
+                payload = e.response.text
+            raise FailedDependencyException(
+                source="OIDCProvider",
+                status_code=e.response.status_code,
+                correlation_id=get_correlation_id(),
+                payload=payload,
+                detail="Authentication service returned an error."
+            )
         except httpx.RequestError as e:
-            logger.error("Failed to fetch OIDC configuration", url=auth_config.OIDC_CONFIG_URL, error=str(e))
-            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Authentication service is unavailable.")
+            logger.error("Failed to fetch OIDC configuration due to network error", url=auth_config.OIDC_CONFIG_URL, error=str(e))
+            raise FailedDependencyException(
+                source="OIDCProvider",
+                status_code=503, # Use 503 for network/connection issues
+                correlation_id=get_correlation_id(),
+                payload={"error": f"Network error: {type(e).__name__}"},
+                detail="Authentication service is unavailable."
+            )
     return _oidc_config
+
 async def get_jwks_keys():
     """Fetches and caches the JSON Web Key Set (JWKS) containing public keys."""
+    from .main import FailedDependencyException
+
     global _jwks_keys
     if _jwks_keys is None:
         oidc_config = await get_oidc_config()
         jwks_uri = oidc_config.get("jwks_uri")
         if not jwks_uri:
-            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="jwks_uri not found in OIDC config.")
+            raise FailedDependencyException(
+                source="OIDCProvider", 
+                status_code=500, 
+                detail="jwks_uri not found in OIDC config.",
+                correlation_id=get_correlation_id()
+                )
         
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.get(jwks_uri)
                 response.raise_for_status()
                 _jwks_keys = response.json()
+        except httpx.HTTPStatusError as e:
+            logger.error("Failed to fetch JWKS keys due to HTTP error", url=str(e.request.url), status_code=e.response.status_code, response=e.response.text)
+            try:
+                payload = e.response.json()
+            except Exception:
+                payload = e.response.text
+            raise FailedDependencyException(
+                source="OIDCProvider",
+                status_code=e.response.status_code,
+                correlation_id=get_correlation_id(),
+                payload=payload,
+                detail="Could not fetch public keys for token validation."
+            )
         except httpx.RequestError as e:
-            logger.error("Failed to fetch JWKS keys", url=jwks_uri, error=str(e))
-            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Could not fetch public keys for token validation.")
+            logger.error("Failed to fetch JWKS keys due to network error", url=jwks_uri, error=str(e))
+            raise FailedDependencyException(
+                source="OIDCProvider",
+                status_code=503,
+                correlation_id=get_correlation_id(),
+                payload={"error": f"Network error: {type(e).__name__}"},
+                detail="Could not fetch public keys for token validation."
+            )
     return _jwks_keys
+
 async def get_current_user_claims(token: str = Depends(oauth2_scheme)) -> dict:
     """
     A FastAPI dependency that validates the JWT and returns its claims.
