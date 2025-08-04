@@ -3,16 +3,75 @@ import psycopg2
 from pgvector.psycopg2 import register_vector
 from .database import TABLE_NAME
 from .models import SearchResult
-from pyserini.search.lucene import LuceneSearcher
-import json 
+from pyserini.search.lucene import LuceneSearcher, querybuilder
+from pyserini.analysis import Analyzer, get_lucene_analyzer
+import json
+from typing import List, Optional
+import structlog
 
-def search_bm25(query: str, k: int, searcher: LuceneSearcher) -> dict:
+logger = structlog.get_logger(__name__)
+
+
+def search_bm25(query: str, k: int, searcher: LuceneSearcher, dataset_ids: Optional[List[str]] = None) -> dict:
     """
-    Performs a BM25 search using a pre-initialized Pyserini LuceneSearcher.
+    Performs a BM25 search using a Pyserini LuceneSearcher.
+    This version uses the querybuilder API consistently for both filtered and unfiltered
+    searches to ensure identical scoring logic for the text component.
     """
     start_time = time.time()
     
-    hits = searcher.search(query, k=k)
+    # Create an analyzer to process the query string. This should match the analyzer used to build the index.
+    analyzer = Analyzer(get_lucene_analyzer())
+    
+    # Define the boolean logic clauses we'll need from the querybuilder.
+    should = querybuilder.JBooleanClauseOccur['should'].value
+    must = querybuilder.JBooleanClauseOccur['must'].value
+    # --- START OF CHANGE ---
+    # Define the FILTER clause, which matches documents but does not contribute to the score.
+    filter_clause = querybuilder.JBooleanClauseOccur['filter'].value
+    # --- END OF CHANGE ---
+
+    # 1. ALWAYS build the text query part programmatically for consistency.
+    # This creates a "bag of words" query against the 'contents' field.
+    text_query_terms = analyzer.analyze(query)
+    text_query_builder = querybuilder.get_boolean_query_builder()
+    for term in text_query_terms:
+        term_query = querybuilder.get_term_query(term, field="contents")
+        text_query_builder.add(term_query, should)
+    text_query = text_query_builder.build()
+
+    # The final query starts as just the text query.
+    final_query = text_query
+
+    # 2. If dataset_ids are provided, build a filter and combine it with the text query.
+    if dataset_ids:
+        logger.info("Applying dataset filters to the search query.", dataset_ids=dataset_ids)
+
+        # This outer builder will contain a clause for each dataset_id (OR logic).
+        outer_filter_builder = querybuilder.get_boolean_query_builder()
+        for did in dataset_ids:
+            # For each UUID, we create an inner query that requires all its parts to be present (AND logic).
+            inner_must_builder = querybuilder.get_boolean_query_builder()
+            uuid_parts = did.split('-')
+            for part in uuid_parts:
+                term_query = querybuilder.get_term_query(part.lower(), field="source")
+                inner_must_builder.add(term_query, must)
+            outer_filter_builder.add(inner_must_builder.build(), should)
+        filter_query = outer_filter_builder.build()
+
+        # 3. Combine the text query and the filter query.
+        #    The text query MUST match and contribute to the score.
+        #    The filter query MUST match but WILL NOT contribute to the score.
+        final_query_builder = querybuilder.get_boolean_query_builder()
+        final_query_builder.add(text_query, must)
+        # --- START OF CHANGE ---
+        # Use the 'filter_clause' instead of 'must' for the filter_query
+        final_query_builder.add(filter_query, filter_clause)
+        # --- END OF CHANGE ---
+        final_query = final_query_builder.build()
+
+    # Perform the search using the final constructed query object.
+    hits = searcher.search(final_query, k=k)
     
     end_time = time.time()
     query_duration = end_time - start_time
@@ -27,9 +86,9 @@ def search_bm25(query: str, k: int, searcher: LuceneSearcher) -> dict:
             use_case=raw_doc.get("use_case"),
             source=raw_doc.get("source"),
             source_id=raw_doc.get("source_id"),
-            chunk_id=int(raw_doc.get("chunk_id", 0)), 
+            chunk_id=int(raw_doc.get("chunk_id", 0)),
             language=raw_doc.get("language"),
-            distance=hit.score 
+            distance=hit.score
         )
         results_list.append(result)
 

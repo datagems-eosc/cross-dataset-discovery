@@ -96,6 +96,8 @@ def perform_search(
     log = logger.bind(query=request.query, k=request.k, UserId=user_subject)
     if client_id:
         log = log.bind(ClientId=client_id)
+    if request.dataset_ids:
+        log = log.bind(dataset_ids=request.dataset_ids)
 
     log.info("Search request received.")
 
@@ -106,7 +108,9 @@ def perform_search(
 
     user_permissions = set(claims.get("datasets", []))
     try:
-        search_results_data = search_logic.search_bm25(request.query, request.k, searcher)
+        search_results_data = search_logic.search_bm25(
+            request.query, request.k, searcher, dataset_ids=request.dataset_ids
+        )
         log.info(f"Used BM25 and retireved {len(search_results_data['results'])} results.", query_time=search_results_data["query_time"])
         authorized_results = []
         for result in search_results_data["results"]:
