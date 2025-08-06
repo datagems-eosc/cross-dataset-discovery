@@ -30,8 +30,7 @@ class SemanticChunker(Chunker):
         # Fallback if direct name resolution fails
         tokenizer = AutoTokenizer.from_pretrained(self.model_name)
         chunker = semchunk.chunkerify(tokenizer, self.chunk_size)
-        if chunker:
-            return chunker
+        return chunker
 
     def chunk(self, text: str) -> List[str]:
         """

@@ -85,21 +85,21 @@ def main(
     chunk_id = 0
 
     with open(output_path, "w", encoding="utf-8") as fout:
-        if is_jsonl:
-            source_iter = (
-                json.loads(line) for line in open(input_path, "r", encoding="utf-8")
-            )
-        else:
-            data = json.load(open(input_path, "r", encoding="utf-8"))
-            source_iter = iter(data)
-
-        for out_chunks in tqdm(
-            pool.imap_unordered(process_item, source_iter), desc="Chunking", unit="rec"
-        ):
-            for rec in out_chunks:
-                rec["chunk_id"] = chunk_id
-                fout.write(json.dumps(rec, ensure_ascii=False) + "\n")
-                chunk_id += 1
+        with open(input_path, "r", encoding="utf-8") as fin:
+            if is_jsonl:
+                source_iter = (json.loads(line) for line in fin)
+            else:
+                data = json.load(fin)
+                source_iter = iter(data)
+            for out_chunks in tqdm(
+                pool.imap_unordered(process_item, source_iter),
+                desc="Chunking",
+                unit="rec",
+            ):
+                for rec in out_chunks:
+                    rec["chunk_id"] = chunk_id
+                    fout.write(json.dumps(rec, ensure_ascii=False) + "\n")
+                    chunk_id += 1
 
     pool.close()
     pool.join()

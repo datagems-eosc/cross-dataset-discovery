@@ -311,7 +311,6 @@ class ReActRetriever(FaissDenseRetriever):
         except Exception as e:
             print(f"Failed to load FAISS index to GPU: {e}. Using CPU index.")
             index_to_search = index_cpu  # Fallback to CPU index
-            res = None  # Ensure res is None if GPU fails
         # --- End FAISS Index Resource Management ---
 
         # List to store the final accumulated results for each query
@@ -408,8 +407,7 @@ class ReActRetriever(FaissDenseRetriever):
                 # 4. Format the observation for the LLM
                 observation_string = self._format_observation(step_results)
                 return observation_string, search_calls_increment
-
-        # --- End search step function definition ---
+            return "Observation: No valid results found for the search.", 0
 
         # --- Iterate through each natural language query ---
         for nlq_index, nlq in enumerate(

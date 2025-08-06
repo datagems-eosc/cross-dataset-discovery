@@ -184,8 +184,6 @@ def generate_topic_questions_from_merged(
                                     print(question_text.strip())
                                     num_questions_for_doc += 1
                                     global_question_counter += 1
-                        pass
-
                 if num_questions_for_doc > 0:
                     success_doc_count += 1
         except Exception as e:

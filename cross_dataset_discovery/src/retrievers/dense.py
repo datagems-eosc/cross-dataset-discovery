@@ -214,8 +214,6 @@ class FaissDenseRetriever(BaseRetriever):
         del embeddings_np
         del texts
         del current_metadata_list
-        if "processed_embeddings" in locals():
-            del processed_embeddings
 
         torch.cuda.empty_cache()
 

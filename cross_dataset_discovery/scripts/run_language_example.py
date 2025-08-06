@@ -24,8 +24,6 @@ for retriever_instance in ALL_RETRIEVER_CLASSES:
     print(f"Using retriever: {retriever.__class__.__name__}")
     if isinstance(retriever, PyseriniBM25Retriever):
         output_folder = "cross_dataset_discovery/assets/language/indexes/bm25"
-    # elif isinstance(retriever, PylateColbertRetriever):
-    #    output_folder = "cross_dataset_discovery/assets/language/indexes/colbert"
     else:
         output_folder = "cross_dataset_discovery/assets/language/indexes/dense"
     results: List[List[RetrievalResult]] = retriever.retrieve([nlq], output_folder, k=3)

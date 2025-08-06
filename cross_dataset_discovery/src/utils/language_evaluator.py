@@ -6,17 +6,6 @@ import wandb
 from src.utils.evaluator import EvaluationMetrics
 from src.retrieval.base import RetrievalResult
 
-try:
-    from IPython.display import display, HTML
-
-    _IPYTHON_DISPLAY_AVAILABLE = True
-except ImportError:
-    _IPYTHON_DISPLAY_AVAILABLE = False
-    display = print
-
-    def HTML(x):
-        print(x)
-
 
 class LanguageEvaluator(EvaluationMetrics):
     """
@@ -189,30 +178,12 @@ class LanguageEvaluator(EvaluationMetrics):
 
                 for scenario, df in results_tables.items():
                     title = f"--- Scenario: {scenario} ---"
-                    if _IPYTHON_DISPLAY_AVAILABLE:
-                        # Use HTML for richer title formatting in IPython environments
-                        display(HTML(f"<h3>{title}</h3>"))
-                    else:
-                        # Standard print for titles otherwise
-                        print(f"\n{title}")
+                    print(f"\n{title}")
 
                     if df.empty:
                         print("No results calculated for this scenario.")
                     else:
-                        if _IPYTHON_DISPLAY_AVAILABLE:
-                            # Use display() for rich DataFrame rendering (HTML table)
-                            # Apply float formatting using pandas styler for consistency
-                            display(
-                                df.style.format(
-                                    "{:.4f}",
-                                    subset=pd.IndexSlice[
-                                        :, df.select_dtypes(include=["float"]).columns
-                                    ],
-                                )
-                            )
-                        else:
-                            # Fallback to plain text print if IPython is not available
-                            print(df.to_string(float_format="%.4f"))
+                        print(df.to_string(float_format="%.4f"))
 
             # 4. Log to W&B (if enabled)
             if enable_wandb and wandb_log_data:
