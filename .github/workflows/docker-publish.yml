@@ -3,7 +3,7 @@ name: Build and Push Search API Docker Image
 on:
   push:
     tags:
-      - 'v*' 
+      - 'v*'
 
 env:
   REGISTRY: ghcr.io

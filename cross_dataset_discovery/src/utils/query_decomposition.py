@@ -1,7 +1,6 @@
 import os
 import json
-import re
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict
 
 from pydantic.v1 import BaseModel
 from langchain_core.prompts import ChatPromptTemplate
@@ -9,9 +8,12 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_ollama import ChatOllama
 
+
 class SubQueryExample(BaseModel):
     """A Pydantic model to structure few-shot examples before formatting."""
+
     sub_query: str
+
 
 class QueryDecomposer:
     """
@@ -23,6 +25,7 @@ class QueryDecomposer:
     optional file-based caching system to avoid re-computing decompositions for
     the same query, speeding up repeated runs.
     """
+
     def __init__(self, ollama_model: str, output_folder: Optional[str] = None):
         """
         Initializes the QueryDecomposer.
@@ -49,39 +52,47 @@ class QueryDecomposer:
                 "tool_calls": [
                     SubQueryExample(sub_query="What is chat langchain"),
                     SubQueryExample(sub_query="What is a langchain template"),
-                ]
+                ],
             },
             {
                 "input": "How would I use LangGraph to build an automaton",
                 "tool_calls": [
                     SubQueryExample(sub_query="How to build automaton with LangGraph"),
-                ]
+                ],
             },
             {
                 "input": "How to build multi-agent system and stream intermediate steps from it",
                 "tool_calls": [
                     SubQueryExample(sub_query="How to build multi-agent system"),
                     SubQueryExample(sub_query="How to stream intermediate steps"),
-                    SubQueryExample(sub_query="How to stream intermediate steps from multi-agent system"),
-                ]
+                    SubQueryExample(
+                        sub_query="How to stream intermediate steps from multi-agent system"
+                    ),
+                ],
             },
             {
-                 "input": "What's the difference between LangChain agents and LangGraph?",
-                 "tool_calls": [
-                     SubQueryExample(sub_query="What's the difference between LangChain agents and LangGraph?"),
-                     SubQueryExample(sub_query="What are LangChain agents"),
-                     SubQueryExample(sub_query="What is LangGraph"),
-                 ]
+                "input": "What's the difference between LangChain agents and LangGraph?",
+                "tool_calls": [
+                    SubQueryExample(
+                        sub_query="What's the difference between LangChain agents and LangGraph?"
+                    ),
+                    SubQueryExample(sub_query="What are LangChain agents"),
+                    SubQueryExample(sub_query="What is LangGraph"),
+                ],
             },
             {
                 "input": "what's the difference between web voyager and reflection agents? do they use langgraph?",
                 "tool_calls": [
-                    SubQueryExample(sub_query="What's the difference between web voyager and reflection agents"),
-                    SubQueryExample(sub_query='Do web voyager and reflection agents use LangGraph'),
-                    SubQueryExample(sub_query='What is web voyager'),
-                    SubQueryExample(sub_query='What are reflection agents')
-                ]
-            }
+                    SubQueryExample(
+                        sub_query="What's the difference between web voyager and reflection agents"
+                    ),
+                    SubQueryExample(
+                        sub_query="Do web voyager and reflection agents use LangGraph"
+                    ),
+                    SubQueryExample(sub_query="What is web voyager"),
+                    SubQueryExample(sub_query="What are reflection agents"),
+                ],
+            },
         ]
 
         # Convert structured examples into the human message format for the prompt.
@@ -89,10 +100,9 @@ class QueryDecomposer:
         for ex in examples_data:
             input_text = ex["input"]
             output_text = "\n".join([sq.sub_query for sq in ex["tool_calls"]])
-            simple_examples.extend([
-                HumanMessage(content=input_text),
-                AIMessage(content=output_text)
-            ])
+            simple_examples.extend(
+                [HumanMessage(content=input_text), AIMessage(content=output_text)]
+            )
 
         # --- LangChain Setup ---
         system = """You are an expert at query decomposition. Your goal is to break down a user's question into the smallest possible set of specific, answerable sub-questions that are *all necessary* to fully answer the original question.
@@ -123,19 +133,25 @@ Respond ONLY with the list of sub-questions, each on a new line. Do NOT include 
     def _load_cache(self) -> Dict[str, List[str]]:
         if self.cache_file and os.path.exists(self.cache_file):
             try:
-                with open(self.cache_file, 'r', encoding='utf-8') as f:
+                with open(self.cache_file, "r", encoding="utf-8") as f:
                     return json.load(f)
             except (json.JSONDecodeError, IOError) as e:
-                print(f"Warning: Could not load cache file {self.cache_file}. Error: {e}")
+                print(
+                    f"Warning: Could not load cache file {self.cache_file}. Error: {e}"
+                )
         return {}
 
     def _save_cache(self):
         if self.cache_file and self.decompositions_cache is not None:
             try:
-                with open(self.cache_file, 'w', encoding='utf-8') as f:
-                    json.dump(self.decompositions_cache, f, indent=4, ensure_ascii=False)
+                with open(self.cache_file, "w", encoding="utf-8") as f:
+                    json.dump(
+                        self.decompositions_cache, f, indent=4, ensure_ascii=False
+                    )
             except IOError as e:
-                print(f"Warning: Could not save cache file {self.cache_file}. Error: {e}")
+                print(
+                    f"Warning: Could not save cache file {self.cache_file}. Error: {e}"
+                )
 
     def decompose(self, nlq: str) -> List[str]:
         """
@@ -165,12 +181,15 @@ Respond ONLY with the list of sub-questions, each on a new line. Do NOT include 
             if raw_output:
                 # Parse the raw string output by splitting by newline and cleaning whitespace.
                 decomposed_queries = [
-                    line.strip() for line in raw_output.strip().split('\n')
+                    line.strip()
+                    for line in raw_output.strip().split("\n")
                     if line.strip()
                 ]
 
             if not decomposed_queries:
-                 print(f"Warning: Model returned empty or non-parseable output for '{nlq}'. Raw output: '{raw_output}'")
+                print(
+                    f"Warning: Model returned empty or non-parseable output for '{nlq}'. Raw output: '{raw_output}'"
+                )
 
         except Exception as e:
             print(f"Error during decomposition or parsing for '{nlq}': {e}")
@@ -180,8 +199,8 @@ Respond ONLY with the list of sub-questions, each on a new line. Do NOT include 
             self.decompositions_cache[nlq] = decomposed_queries
             self._save_cache()
         elif self.decompositions_cache is not None and not decomposed_queries:
-             # Current behavior: do not cache failures to allow for retries.
-             pass
+            # Current behavior: do not cache failures to allow for retries.
+            pass
 
         return decomposed_queries
 

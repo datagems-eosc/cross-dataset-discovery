@@ -1,10 +1,11 @@
 import os
 import json
 import re
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict
 
 from vllm import LLM, SamplingParams
 from transformers import AutoTokenizer
+
 
 class QueryDecomposer:
     """
@@ -16,19 +17,21 @@ class QueryDecomposer:
     file-based caching mechanism to store and retrieve previously computed decompositions,
     avoiding redundant processing.
     """
-    def __init__(self,
-                 model_name_or_path: str = "gaunernst/gemma-3-27b-it-int4-awq",
-                 output_folder: Optional[str] = None,
-                 tensor_parallel_size: int = 2,
-                 quantization: Optional[str] = None,
-                 gpu_memory_utilization: float = 0.70,
-                 enable_prefix_caching: bool = True,
-                 trust_remote_code: bool = True,
-                 max_tokens: int = 4096,
-                 temperature: float = 0.0,
-                 top_p: float = 0.95,
-                 top_k: int = 20
-                 ):
+
+    def __init__(
+        self,
+        model_name_or_path: str = "gaunernst/gemma-3-27b-it-int4-awq",
+        output_folder: Optional[str] = None,
+        tensor_parallel_size: int = 2,
+        quantization: Optional[str] = None,
+        gpu_memory_utilization: float = 0.70,
+        enable_prefix_caching: bool = True,
+        trust_remote_code: bool = True,
+        max_tokens: int = 4096,
+        temperature: float = 0.0,
+        top_p: float = 0.95,
+        top_k: int = 20,
+    ):
         """
         Initializes the VLLM-based QueryDecomposer.
 
@@ -60,7 +63,7 @@ class QueryDecomposer:
         self.tokenizer = AutoTokenizer.from_pretrained(
             self.model_name_or_path,
             trust_remote_code=trust_remote_code,
-            cache_dir="/data/hdd1/vllm_models/"
+            cache_dir="/data/hdd1/vllm_models/",
         )
         self.llm = LLM(
             model=self.model_name_or_path,
@@ -70,13 +73,10 @@ class QueryDecomposer:
             enable_prefix_caching=enable_prefix_caching,
             trust_remote_code=trust_remote_code,
             download_dir="/data/hdd1/vllm_models/",
-            max_model_len=4096
+            max_model_len=4096,
         )
         self.sampling_params = SamplingParams(
-            temperature=temperature,
-            top_p=top_p,
-            top_k=top_k,
-            max_tokens=max_tokens
+            temperature=temperature, top_p=top_p, top_k=top_k, max_tokens=max_tokens
         )
 
         examples_data = [
@@ -85,49 +85,57 @@ class QueryDecomposer:
                 "tool_calls": [
                     {"sub_query": "What is chat langchain"},
                     {"sub_query": "What is a langchain template"},
-                ]
+                ],
             },
             {
                 "input": "How would I use LangGraph to build an automaton",
                 "tool_calls": [
                     {"sub_query": "How to build automaton with LangGraph"},
-                ]
+                ],
             },
             {
                 "input": "How to build multi-agent system and stream intermediate steps from it",
                 "tool_calls": [
                     {"sub_query": "How to build multi-agent system"},
                     {"sub_query": "How to stream intermediate steps"},
-                    {"sub_query": "How to stream intermediate steps from multi-agent system"},
-                ]
+                    {
+                        "sub_query": "How to stream intermediate steps from multi-agent system"
+                    },
+                ],
             },
             {
-                 "input": "What's the difference between LangChain agents and LangGraph?",
-                 "tool_calls": [
-                     {"sub_query": "What's the difference between LangChain agents and LangGraph?"},
-                     {"sub_query": "What are LangChain agents"},
-                     {"sub_query": "What is LangGraph"},
-                 ]
+                "input": "What's the difference between LangChain agents and LangGraph?",
+                "tool_calls": [
+                    {
+                        "sub_query": "What's the difference between LangChain agents and LangGraph?"
+                    },
+                    {"sub_query": "What are LangChain agents"},
+                    {"sub_query": "What is LangGraph"},
+                ],
             },
             {
                 "input": "what's the difference between web voyager and reflection agents? do they use langgraph?",
                 "tool_calls": [
-                    {"sub_query": "What's the difference between web voyager and reflection agents"},
-                    {"sub_query": 'Do web voyager and reflection agents use LangGraph'},
-                    {"sub_query": 'What is web voyager'},
-                    {"sub_query": 'What are reflection agents'}
-                ]
-            }
+                    {
+                        "sub_query": "What's the difference between web voyager and reflection agents"
+                    },
+                    {"sub_query": "Do web voyager and reflection agents use LangGraph"},
+                    {"sub_query": "What is web voyager"},
+                    {"sub_query": "What are reflection agents"},
+                ],
+            },
         ]
 
         self.formatted_examples_for_vllm = []
         for ex in examples_data:
             input_text = ex["input"]
             output_text = "\n".join([sq["sub_query"] for sq in ex["tool_calls"]])
-            self.formatted_examples_for_vllm.extend([
-                {"role": "user", "content": input_text},
-                {"role": "assistant", "content": output_text}
-            ])
+            self.formatted_examples_for_vllm.extend(
+                [
+                    {"role": "user", "content": input_text},
+                    {"role": "assistant", "content": output_text},
+                ]
+            )
 
         self.system_prompt_content = """You are an expert at query decomposition. Your goal is to break down a user's question into the smallest possible set of specific, answerable sub-questions that are *all necessary* to fully answer the original question.
 
@@ -142,17 +150,20 @@ Follow these rules:
 
 Respond ONLY with the list of sub-questions, each on a new line. Do NOT include any introduction, explanation, numbering, or bullet points preceding the sub-questions."""
 
-        self.system_message_for_vllm = {"role": "system", "content": self.system_prompt_content}
+        self.system_message_for_vllm = {
+            "role": "system",
+            "content": self.system_prompt_content,
+        }
 
     def _load_cache(self) -> Dict[str, List[str]]:
         if self.cache_file and os.path.exists(self.cache_file):
-            with open(self.cache_file, 'r', encoding='utf-8') as f:
+            with open(self.cache_file, "r", encoding="utf-8") as f:
                 return json.load(f)
         return {}
 
     def _save_cache(self):
         if self.cache_file and self.decompositions_cache is not None:
-            with open(self.cache_file, 'w', encoding='utf-8') as f:
+            with open(self.cache_file, "w", encoding="utf-8") as f:
                 json.dump(self.decompositions_cache, f, indent=4, ensure_ascii=False)
 
     def decompose(self, nlq: str) -> List[str]:
@@ -172,14 +183,14 @@ Respond ONLY with the list of sub-questions, each on a new line. Do NOT include 
             if cached_result:
                 return cached_result
 
-        messages = [self.system_message_for_vllm] + \
-                   self.formatted_examples_for_vllm + \
-                   [{"role": "user", "content": nlq}]
+        messages = (
+            [self.system_message_for_vllm]
+            + self.formatted_examples_for_vllm
+            + [{"role": "user", "content": nlq}]
+        )
 
         prompt_text = self.tokenizer.apply_chat_template(
-            messages,
-            tokenize=False,
-            add_generation_prompt=True
+            messages, tokenize=False, add_generation_prompt=True
         )
 
         vllm_outputs = self.llm.generate([prompt_text], self.sampling_params)
@@ -187,9 +198,9 @@ Respond ONLY with the list of sub-questions, each on a new line. Do NOT include 
 
         decomposed_queries = []
         if raw_output:
-            lines = raw_output.strip().split('\n')
+            lines = raw_output.strip().split("\n")
             for line in lines:
-                cleaned_line = re.sub(r'\s+', ' ', line).strip()
+                cleaned_line = re.sub(r"\s+", " ", line).strip()
                 if cleaned_line:
                     decomposed_queries.append(cleaned_line)
 
@@ -236,14 +247,14 @@ Respond ONLY with the list of sub-questions, each on a new line. Do NOT include 
                     final_results[i] = cached_result
                     continue
 
-            messages = [self.system_message_for_vllm] + \
-                       self.formatted_examples_for_vllm + \
-                       [{"role": "user", "content": nlq}]
+            messages = (
+                [self.system_message_for_vllm]
+                + self.formatted_examples_for_vllm
+                + [{"role": "user", "content": nlq}]
+            )
 
             prompt_text = self.tokenizer.apply_chat_template(
-                messages,
-                tokenize=False,
-                add_generation_prompt=True
+                messages, tokenize=False, add_generation_prompt=True
             )
             prompts_for_vllm.append(prompt_text)
             indices_for_vllm.append(i)
@@ -259,9 +270,9 @@ Respond ONLY with the list of sub-questions, each on a new line. Do NOT include 
                 raw_output = output_obj.outputs[0].text
                 decomposed_queries = []
                 if raw_output:
-                    lines = raw_output.strip().split('\n')
+                    lines = raw_output.strip().split("\n")
                     for line in lines:
-                        cleaned_line = re.sub(r'\s+', ' ', line).strip()
+                        cleaned_line = re.sub(r"\s+", " ", line).strip()
                         if cleaned_line:
                             decomposed_queries.append(cleaned_line)
 

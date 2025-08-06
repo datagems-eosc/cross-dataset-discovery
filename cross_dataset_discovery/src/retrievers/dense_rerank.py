@@ -6,6 +6,7 @@ import numpy as np
 from tqdm import tqdm
 import torch
 
+
 class DenseRetrieverWithReranker(FaissDenseRetriever):
     """
     A two-stage retriever that enhances dense retrieval with a subsequent reranking step.
@@ -15,11 +16,12 @@ class DenseRetrieverWithReranker(FaissDenseRetriever):
     reranker model to re-score and re-order these candidates for each query,
     providing more accurate final results (Stage 2).
     """
+
     def __init__(
         self,
         embedding_model_name: str = "WhereIsAI/UAE-Large-V1",
         reranker_model_name: str = "mixedbread-ai/mxbai-rerank-large-v2",
-        k_multiplier: int = 3
+        k_multiplier: int = 3,
     ):
         """
         Initializes the retriever and the reranker.
@@ -39,10 +41,7 @@ class DenseRetrieverWithReranker(FaissDenseRetriever):
         self._k_multiplier = k_multiplier
 
     def retrieve(
-        self,
-        nlqs: List[str],
-        output_folder: str,
-        k: int
+        self, nlqs: List[str], output_folder: str, k: int
     ) -> List[List[RetrievalResult]]:
         # Stage 1: Retrieve an initial, larger set of candidate documents.
         initial_k = k * self._k_multiplier
@@ -52,12 +51,16 @@ class DenseRetrieverWithReranker(FaissDenseRetriever):
 
         # Stage 2: Rerank the candidates for each query.
         progress_bar_desc = f"Reranking with {self._reranker_model_name}"
-        for i, (nlq, initial) in enumerate(tqdm(zip(nlqs, initial_batches), desc=progress_bar_desc)):
+        for i, (nlq, initial) in enumerate(
+            tqdm(zip(nlqs, initial_batches), desc=progress_bar_desc)
+        ):
             if not initial:
                 final_batches.append([])
                 continue
 
-            valid_initial_results = [r for r in initial if isinstance(r.object, str) and r.object]
+            valid_initial_results = [
+                r for r in initial if isinstance(r.object, str) and r.object
+            ]
             if not valid_initial_results:
                 final_batches.append([])
                 continue
@@ -71,38 +74,53 @@ class DenseRetrieverWithReranker(FaissDenseRetriever):
                     documents=docs_to_rerank,
                     top_k=k,
                     return_documents=True,
-                    batch_size=8
+                    batch_size=8,
                 )
 
                 processed_results: List[RetrievalResult] = []
                 if reranked:
                     for item in reranked:
-                        if not all(hasattr(item, attr) for attr in ['document', 'score']):
-                             print(f"Warning: Skipping unexpected item format from reranker: {item}")
-                             continue
+                        if not all(
+                            hasattr(item, attr) for attr in ["document", "score"]
+                        ):
+                            print(
+                                f"Warning: Skipping unexpected item format from reranker: {item}"
+                            )
+                            continue
 
                         doc_text = item.document
                         score = item.score
                         original_result = original_results_map.get(doc_text)
 
                         if original_result:
-                            final_score = float(score) if isinstance(score, (int, float)) and np.isfinite(score) else original_result.score
-                            processed_results.append(RetrievalResult(
-                                score=final_score,
-                                object=original_result.object,
-                                metadata=original_result.metadata
-                            ))
+                            final_score = (
+                                float(score)
+                                if isinstance(score, (int, float))
+                                and np.isfinite(score)
+                                else original_result.score
+                            )
+                            processed_results.append(
+                                RetrievalResult(
+                                    score=final_score,
+                                    object=original_result.object,
+                                    metadata=original_result.metadata,
+                                )
+                            )
 
                 else:
-                    print(f"Warning: Reranker returned no results for query {i} with top_k={k}. Falling back.")
+                    print(
+                        f"Warning: Reranker returned no results for query {i} with top_k={k}. Falling back."
+                    )
                     processed_results = valid_initial_results
 
                 processed_results.sort(key=lambda r: r.score, reverse=True)
                 final_batches.append(processed_results)
 
             except Exception as e:
-                 print(f"ERROR during reranking for query {i} ('{nlq[:50]}...'): {e}. Falling back to initial results.")
-                 valid_initial_results.sort(key=lambda r: r.score, reverse=True)
-                 final_batches.append(valid_initial_results[:k])
+                print(
+                    f"ERROR during reranking for query {i} ('{nlq[:50]}...'): {e}. Falling back to initial results."
+                )
+                valid_initial_results.sort(key=lambda r: r.score, reverse=True)
+                final_batches.append(valid_initial_results[:k])
 
         return final_batches

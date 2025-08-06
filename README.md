@@ -51,7 +51,7 @@ You're now ready to start working with the project.
 
 Since chunking, creating synthetic benchmark, and indexing can be time- and resource-intensive, you can skip these steps by downloading the **precomputed assets** directly from [🤗 Hugging Face Hub](https://huggingface.co/datasets/DARELab/cross-dataset-assets).
 
-This allows you to **jump straight to**:  
+This allows you to **jump straight to**:
 ➡️ [Running Example Retrievals](https://github.com/datagems-eosc/cross-dataset-discovery/blob/main/README.md#%EF%B8%8F-running-example-retrievals)
 
 ### 🔽 Download Instructions
@@ -77,7 +77,7 @@ huggingface-cli download "DARELab/cross-dataset-assets" \
 - ✅ **Language**: Chunked and serialized documents, benchmark, and indexes.
 - ⚠️ **Not Included**:
   - Raw source files for the Language use-case (due to size constraints)
-  - The `GGUF` model required for the ReAct retriever 
+  - The `GGUF` model required for the ReAct retriever
 
 This is the quickest way to get started if you don't wish to regenerate all artifacts from scratch.
 
@@ -187,7 +187,7 @@ These are the chunked versions of the original document collections and are the 
 
 > 📦 Chunking is performed using [chonky](https://github.com/mirth/chonky), a nice framework for semantic chunking.
 
-> ⚠️ **Note on Performance**:  
+> ⚠️ **Note on Performance**:
 > For the **Language Use-Case**, the dataset contains a large number of documents, so chunking can be time-consuming. To speed this up, you can use parallel processing with the following script:
 >
 > ```
@@ -223,7 +223,7 @@ Performs top-k retrieval over previously indexed data for a list of natural lang
 - `output_folder` *(str)*: Path to the folder containing the index files. The actual stored files inside the output folder and their manpipulation is perfomed iternally.
 - `k` *(int)*: Number of top results to return per query.
 
-**Returns:**  
+**Returns:**
 A `List[List[RetrievalResult]]`, where each sublist contains the top-k results for one query.
 
 ---
@@ -317,23 +317,23 @@ Below are the core components and libraries used:
 
 ### 🔍 Retrieval Backends
 
-- **Dense Retrieval**:  
+- **Dense Retrieval**:
   Implemented using [**FAISS**](https://github.com/facebookresearch/faiss).
 
-- **Sparse Retrieval (BM25)**:  
+- **Sparse Retrieval (BM25)**:
   Powered by [**Pyserini**](https://github.com/castorini/pyserini), a Python interface to the Lucene-based Anserini toolkit.
 
 ### 🧬 Embedding Generation
 
-- **Sentence Transformers**:  
-  Embeddings are generated using models from [**sentence-transformers**](https://huggingface.co/sentence-transformers). You can use any compatible model.  
-  The default model used is:  
+- **Sentence Transformers**:
+  Embeddings are generated using models from [**sentence-transformers**](https://huggingface.co/sentence-transformers). You can use any compatible model.
+  The default model used is:
   [`Snowflake/snowflake-arctic-embed-l-v2.0`](https://huggingface.co/Snowflake/snowflake-arctic-embed-l-v2.0)
 
 ### 🔁 Reranking
 
-- **Cross-Encoder Reranker**:  
-  In case of the dense retriever with reranker, the cross encoder used is: 
+- **Cross-Encoder Reranker**:
+  In case of the dense retriever with reranker, the cross encoder used is:
   [`mixedbread-ai/mxbai-rerank-large-v2`](https://huggingface.co/mixedbread-ai/mxbai-rerank-large-v2)
 
 ### 🤖 ReAct Retriever (LLM + Tool Use)
@@ -346,7 +346,7 @@ Below are the core components and libraries used:
 
 ## Prerequisites
 
-Configure your kubectl with the instructions provided by CITE and set up the VPN to Scayle. 
+Configure your kubectl with the instructions provided by CITE and set up the VPN to Scayle.
 
 Verify your configuration is working:
 ```bash

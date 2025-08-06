@@ -2,6 +2,7 @@ import os
 import psycopg2
 from dotenv import load_dotenv
 
+
 def check_database_connection():
     """
     Loads database credentials from a .env file, connects to the PostgreSQL
@@ -26,13 +27,15 @@ def check_database_connection():
     conn = None
     try:
         # --- 1. Attempt to connect to the database ---
-        print(f"Attempting to connect to database '{db_name}' on {db_host}:{db_port}...")
+        print(
+            f"Attempting to connect to database '{db_name}' on {db_host}:{db_port}..."
+        )
         conn = psycopg2.connect(
             host=db_host,
             port=db_port,
             dbname=db_name,
             user=db_user,
-            password=db_password
+            password=db_password,
         )
 
         # --- 2. If connection is successful, verify it with a simple query ---
@@ -44,7 +47,7 @@ def check_database_connection():
 
         # Fetch the result
         db_version = cur.fetchone()
-        
+
         print("\n✅ Success! Database connection is working.")
         print(f"PostgreSQL Version: {db_version[0]}")
 

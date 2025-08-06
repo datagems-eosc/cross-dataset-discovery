@@ -10,6 +10,7 @@ from structlog.types import EventDict, Processor
 
 correlation_id_var: ContextVar[str] = ContextVar("correlation_id", default=None)
 
+
 async def request_response_logging_middleware(request: Request, call_next):
     """
     FastAPI middleware to log the details of every incoming request and its response.
@@ -20,7 +21,7 @@ async def request_response_logging_middleware(request: Request, call_next):
 
     log = structlog.get_logger(__name__)
     start_time = time.time()
-    
+
     try:
         response: Response = await call_next(request)
         process_time = (time.time() - start_time) * 1000
@@ -28,13 +29,13 @@ async def request_response_logging_middleware(request: Request, call_next):
         response_size = 0
         if "content-length" in response.headers:
             response_size = int(response.headers["content-length"])
-            
+
         log_level = "info"
         if status_code >= 500:
             log_level = "error"
         elif status_code >= 400:
             log_level = "warning"
-        
+
         log.log(
             getattr(logging, log_level.upper()),
             "http_request_finished",
@@ -42,7 +43,7 @@ async def request_response_logging_middleware(request: Request, call_next):
             RequestPath=str(request.url),
             StatusCode=status_code,
             ProcessTimeMS=round(process_time, 2),
-            ResponseSize=response_size 
+            ResponseSize=response_size,
         )
 
     except Exception as e:
@@ -55,13 +56,14 @@ async def request_response_logging_middleware(request: Request, call_next):
             exc_info=e,
         )
         raise
-        
+
     return response
 
 
 def get_correlation_id() -> str | None:
     """Returns the current correlation ID."""
     return correlation_id_var.get()
+
 
 async def correlation_id_middleware(request: Request, call_next):
     """
@@ -71,14 +73,15 @@ async def correlation_id_middleware(request: Request, call_next):
     correlation_id = request.headers.get("x-tracking-correlation")
     if not correlation_id:
         correlation_id = str(uuid.uuid4())
-    
+
     token = correlation_id_var.set(correlation_id)
 
     response: Response = await call_next(request)
     response.headers["x-tracking-correlation"] = get_correlation_id()
-    
+
     correlation_id_var.reset(token)
     return response
+
 
 def datagems_log_formatter(_, __, event_dict: EventDict) -> EventDict:
     formatted_event = {}
@@ -105,7 +108,8 @@ def setup_logging():
         datagems_log_formatter,
     ]
     structlog.configure(
-        processors=shared_processors + [
+        processors=shared_processors
+        + [
             structlog.processors.JSONRenderer(),
         ],
         wrapper_class=structlog.stdlib.BoundLogger,

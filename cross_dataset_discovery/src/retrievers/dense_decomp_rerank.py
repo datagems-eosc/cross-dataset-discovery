@@ -2,10 +2,13 @@ from typing import List, Optional, Dict
 from cross_dataset_discovery.src.retrieval.base import RetrievalResult
 from cross_dataset_discovery.src.retrieval.dense import FaissDenseRetriever
 from cross_dataset_discovery.src.utils.query_decompostion import QueryDecomposer
-from cross_dataset_discovery.src.utils.query_decomposition_vllm import QueryDecomposer as VLLMQueryDecomposer
+from cross_dataset_discovery.src.utils.query_decomposition_vllm import (
+    QueryDecomposer as VLLMQueryDecomposer,
+)
 from mxbai_rerank import MxbaiRerankV2
 import torch
 from tqdm import tqdm
+
 
 class DenseRetrieverWithDecompositionAndReranker(FaissDenseRetriever):
     """
@@ -21,13 +24,14 @@ class DenseRetrieverWithDecompositionAndReranker(FaissDenseRetriever):
         aggregated set of unique candidates against the original complex query to
         produce the final results.
     """
+
     def __init__(
         self,
         embedding_model_name: str = "WhereIsAI/UAE-Large-V1",
         reranker_model_name: str = "mixedbread-ai/mxbai-rerank-large-v2",
         model_name: str = "gaunernst/gemma-3-27b-it-int4-awq",
         decomposition_cache_folder: Optional[str] = None,
-        use_vllm: bool = True
+        use_vllm: bool = True,
     ):
         """
         Initializes all components of the retrieval pipeline.
@@ -47,13 +51,11 @@ class DenseRetrieverWithDecompositionAndReranker(FaissDenseRetriever):
         self.use_vllm = use_vllm
         if not self.use_vllm:
             self.decomposer = QueryDecomposer(
-                model_name,
-                output_folder=decomposition_cache_folder
+                model_name, output_folder=decomposition_cache_folder
             )
         else:
             self.decomposer = VLLMQueryDecomposer(
-                model_name_or_path=model_name,
-                output_folder=decomposition_cache_folder
+                model_name_or_path=model_name, output_folder=decomposition_cache_folder
             )
 
     def retrieve(
@@ -70,7 +72,9 @@ class DenseRetrieverWithDecompositionAndReranker(FaissDenseRetriever):
         original_query_indices: List[int] = []
 
         if self.use_vllm:
-            decomposed_nlqs_batch: List[List[str]] = self.decomposer.decompose_batch(nlqs)
+            decomposed_nlqs_batch: List[List[str]] = self.decomposer.decompose_batch(
+                nlqs
+            )
             for i, sub_queries in enumerate(decomposed_nlqs_batch):
                 queries_for_this_nlq = [nlqs[i]] + sub_queries
                 for q in queries_for_this_nlq:
@@ -92,7 +96,9 @@ class DenseRetrieverWithDecompositionAndReranker(FaissDenseRetriever):
         )
 
         # === STAGE 2: AGGREGATE AND DEDUPLICATE CANDIDATES ===
-        deduplicated_candidates: Dict[int, Dict[str, RetrievalResult]] = {i: {} for i in range(len(nlqs))}
+        deduplicated_candidates: Dict[int, Dict[str, RetrievalResult]] = {
+            i: {} for i in range(len(nlqs))
+        }
 
         for query_idx, single_query_results in enumerate(candidate_results_nested):
             original_nlq_idx = original_query_indices[query_idx]
@@ -120,7 +126,7 @@ class DenseRetrieverWithDecompositionAndReranker(FaissDenseRetriever):
                     documents=docs_to_rerank,
                     top_k=k,
                     return_documents=True,
-                    batch_size=32
+                    batch_size=32,
                 )
 
                 reranked_results: List[RetrievalResult] = []
@@ -128,11 +134,13 @@ class DenseRetrieverWithDecompositionAndReranker(FaissDenseRetriever):
                     # Retrieve the original result object to preserve metadata.
                     original_result = unique_candidates_map.get(item.document)
                     if original_result:
-                        reranked_results.append(RetrievalResult(
-                            object=item.document,
-                            score=float(item.score),
-                            metadata=original_result.metadata
-                        ))
+                        reranked_results.append(
+                            RetrievalResult(
+                                object=item.document,
+                                score=float(item.score),
+                                metadata=original_result.metadata,
+                            )
+                        )
 
                 final_batches.append(reranked_results)
 

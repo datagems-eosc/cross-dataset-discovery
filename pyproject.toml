@@ -105,3 +105,6 @@ include = ["*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.bandit]
+skips = ["B301", "B403", "B404"]

@@ -15,16 +15,16 @@ from cross_dataset_discovery.src.retrievers.base import BaseRetriever, Retrieval
 class PylateColbertRetriever(BaseRetriever):
     """
     A retriever implementation using PyLate's ColBERT model with PLAID indexing.
-    
+
     This class provides dense retrieval capabilities using ColBERT embeddings and
     PLAID (Product Quantization and Locality-Sensitive Hashing) indexing for
     efficient similarity search over large document collections.
-    
+
     Attributes:
         PLAID_INDEX_DIR_NAME (str): Default directory name for PLAID index storage
         DOC_STORE_FILENAME (str): Default filename for document store pickle file
     """
-    
+
     PLAID_INDEX_DIR_NAME = "plaid_colbert_index"
     DOC_STORE_FILENAME = "doc_store.pkl"
 
@@ -43,7 +43,7 @@ class PylateColbertRetriever(BaseRetriever):
     ):
         """
         Initialize the PylateColbertRetriever.
-        
+
         Args:
             model_name_or_path (str): Path or name of the ColBERT model to use
             plaid_nbits (int): Number of bits for quantization in PLAID index
@@ -98,7 +98,7 @@ class PylateColbertRetriever(BaseRetriever):
     def _initialize_plaid_components(self, output_folder: str, override: bool = False):
         """
         Initialize PLAID index and retriever components.
-        
+
         Args:
             output_folder (str): Output folder containing the index
             override (bool): Whether to override existing index
