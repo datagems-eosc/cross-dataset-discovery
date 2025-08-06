@@ -5,6 +5,7 @@ from jose import jwt, JWTError
 import structlog
 from . import auth_config
 from .logging_config import get_correlation_id
+from .exceptions import FailedDependencyException
 from typing import List
 
 logger = structlog.get_logger(__name__)
@@ -15,8 +16,6 @@ _jwks_keys = None
 
 async def get_oidc_config():
     """Fetches and caches the OIDC discovery document."""
-    from .main import FailedDependencyException
-
     global _oidc_config
     if _oidc_config is None:
         try:
@@ -60,8 +59,6 @@ async def get_oidc_config():
 
 async def get_jwks_keys():
     """Fetches and caches the JSON Web Key Set (JWKS) containing public keys."""
-    from .main import FailedDependencyException
-
     global _jwks_keys
     if _jwks_keys is None:
         oidc_config = await get_oidc_config()

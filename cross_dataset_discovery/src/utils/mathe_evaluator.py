@@ -3,20 +3,7 @@ from typing import List, Dict, Optional, Tuple
 import json
 import wandb
 from src.utils.evaluator import EvaluationMetrics
-from src.retrieval.base import RetrievalResult
-
-try:
-    from IPython.display import display, HTML
-
-    _IPYTHON_DISPLAY_AVAILABLE = True
-except ImportError:
-    _IPYTHON_DISPLAY_AVAILABLE = False
-
-    def display(x):
-        print(str(x))
-
-    def HTML(x):
-        print(x)
+from src.retrievers.base import RetrievalResult
 
 
 # --- MatheEvaluator Class ---
@@ -178,26 +165,12 @@ class MatheEvaluator(EvaluationMetrics):
                 print(f"Total Retrieval Time: {total_seconds:.2f} seconds")
 
                 title = "--- Overall Metrics ---"
-                if _IPYTHON_DISPLAY_AVAILABLE:
-                    display(HTML(f"<h3>{title}</h3>"))
-                else:
-                    print(f"\n{title}")
+                print(f"\n{title}")
 
                 if overall_metrics_df.empty:
                     print("No results calculated.")
                 else:
-                    # Select float columns for formatting
-                    float_cols = overall_metrics_df.select_dtypes(
-                        include=["float"]
-                    ).columns
-                    if _IPYTHON_DISPLAY_AVAILABLE:
-                        display(
-                            overall_metrics_df.style.format(
-                                "{:.4f}", subset=pd.IndexSlice[:, float_cols]
-                            )
-                        )
-                    else:
-                        print(overall_metrics_df.to_string(float_format="%.4f"))
+                    print(overall_metrics_df.to_string(float_format="%.4f"))
 
             # 4. Log to W&B (if enabled and initialized)
             if enable_wandb and wandb_run:
