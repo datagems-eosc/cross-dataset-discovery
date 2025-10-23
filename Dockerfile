@@ -11,7 +11,7 @@ RUN wget -O /tmp/openjdk.tar.gz ${JDK_URL} && \
 ENV JAVA_HOME=${JAVA_INSTALL_DIR}
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
 WORKDIR /app
-COPY ./search_api/requirements.txt ./requirements.txt
+COPY ./cross_dataset_discovery/api_datagems_cross_dataset_discovery/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 FROM python:3.11-slim AS final
 
@@ -20,15 +20,13 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends wget && \
     rm -rf /var/lib/apt/lists/* && \
     groupadd -r appuser && useradd -r -g appuser appuser
-
 ARG JAVA_INSTALL_DIR=/opt/java/openjdk
 COPY --from=builder ${JAVA_INSTALL_DIR} ${JAVA_INSTALL_DIR}
 ENV JAVA_HOME=${JAVA_INSTALL_DIR}
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
 COPY --from=builder /usr/local/lib/python3.11/site-packages/ /usr/local/lib/python3.11/site-packages/
 COPY --from=builder /usr/local/bin/ /usr/local/bin/
-COPY . .
-
+COPY ./cross_dataset_discovery ./cross_dataset_discovery
 RUN chown -R appuser:appuser /app
 USER appuser
 
@@ -36,4 +34,4 @@ USER appuser
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD wget -q -O - http://localhost:8000/health || exit 1
-CMD ["gunicorn", "-w", "1", "-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:8000", "search_api.main:app"]
+CMD ["gunicorn", "-w", "1", "-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:8000", "cross_dataset_discovery.api_datagems_cross_dataset_discovery.app.main:app"]

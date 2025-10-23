@@ -1,9 +1,0 @@
-name: cross-dataset-discovery-env
-channels:
-  - conda-forge
-dependencies:
-  - python=3.11
-  - pip
-  - openjdk=21
-  - numpy
-  - psycopg2

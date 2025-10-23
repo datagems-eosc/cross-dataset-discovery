@@ -1,0 +1,12 @@
+fastapi
+uvicorn[standard]
+gunicorn
+structlog
+pyserini
+numpy
+psycopg2-binary
+pgvector
+python-dotenv
+python-jose[cryptography]
+python-multipart
+httpx

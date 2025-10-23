@@ -28,7 +28,7 @@ repos:
           - "-c"
           - "pyproject.toml"
           - "-r"
-          - "search_api"
+          - "cross_dataset_discovery/api_datagems_cross_dataset_discovery/app"
           - "cross_dataset_discovery"
           - "-x"
           - "tests"
