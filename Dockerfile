@@ -14,8 +14,6 @@ WORKDIR /app
 COPY ./cross_dataset_discovery/api_datagems_cross_dataset_discovery/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 FROM python:3.11-slim AS final
-
-WORKDIR /app
 RUN apt-get update && \
     apt-get install -y --no-install-recommends wget && \
     rm -rf /var/lib/apt/lists/* && \
@@ -26,12 +24,12 @@ ENV JAVA_HOME=${JAVA_INSTALL_DIR}
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
 COPY --from=builder /usr/local/lib/python3.11/site-packages/ /usr/local/lib/python3.11/site-packages/
 COPY --from=builder /usr/local/bin/ /usr/local/bin/
+WORKDIR /app
 COPY ./cross_dataset_discovery ./cross_dataset_discovery
-RUN chown -R appuser:appuser /app
+WORKDIR /app/cross_dataset_discovery
+RUN chown -R appuser:appuser /app/cross_dataset_discovery
 USER appuser
-
-
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD wget -q -O - http://localhost:8000/health || exit 1
-CMD ["gunicorn", "-w", "1", "-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:8000", "cross_dataset_discovery.api_datagems_cross_dataset_discovery.app.main:app"]
+CMD ["gunicorn", "-w", "1", "-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:8000", "api_datagems_cross_dataset_discovery.app.main:app"]
