@@ -1,15 +1,12 @@
-# ... (all the imports from the original file)
 from typing import List
 
 import httpx
 import structlog
-
-# Changed import
-from api_datagems_cross_dataset_discovery.appconfig import settings
-from api_datagems_cross_dataset_discovery.appexceptions import (
+from api_datagems_cross_dataset_discovery.app.config import settings
+from api_datagems_cross_dataset_discovery.app.exceptions import (
     FailedDependencyException,
 )
-from api_datagems_cross_dataset_discovery.applogging_config import (
+from api_datagems_cross_dataset_discovery.app.logging_config import (
     get_correlation_id,
 )
 from fastapi import Depends, HTTPException, status
@@ -56,7 +53,7 @@ async def get_oidc_config():
             )
             raise FailedDependencyException(
                 source="OIDCProvider",
-                status_code=503,  # Use 503 for network/connection issues
+                status_code=503,
                 correlation_id=get_correlation_id(),
                 payload={"error": f"Network error: {type(e).__name__}"},
                 detail="Authentication service is unavailable.",
