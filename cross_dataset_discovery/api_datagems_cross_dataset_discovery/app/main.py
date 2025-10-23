@@ -29,7 +29,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from psycopg2.pool import SimpleConnectionPool
-from typying import List
+from typing import List
 
 from . import database, security
 
