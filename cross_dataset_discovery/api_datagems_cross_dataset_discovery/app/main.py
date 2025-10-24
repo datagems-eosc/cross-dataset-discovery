@@ -30,8 +30,8 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from psycopg2.pool import SimpleConnectionPool
 from typing import List
-
-from . import database, security
+from api_datagems_cross_dataset_discovery.app.database import get_db_connection
+from api_datagems_cross_dataset_discovery.app import database, security
 
 setup_logging()
 logger = structlog.get_logger(__name__)
@@ -224,7 +224,7 @@ def perform_search(
 
 
 @app.get("/health")
-def health_check(conn=Depends(database.get_db_connection)):
+def health_check(conn=Depends(get_db_connection)):
     # 1. Check if searcher component is loaded
     if not app_state.get("searcher"):
         raise FailedDependencyException(
