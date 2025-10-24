@@ -184,7 +184,7 @@ async def get_authorized_dataset_ids(token: str) -> Set[str]:
     """
     Calls the DataGEMS Gateway to get the dataset IDs the user can access.
     """
-    api_url = f"{settings.GATEWAY_API_URL}/api/principal/me/context-grants"
+    api_url = f"{settings.GATEWAY_API_URL}/dg-app-api/api/principal/me/context-grants"
     headers = {"Authorization": f"Bearer {token}"}
     log = logger.bind(gateway_url=api_url)
     try:
