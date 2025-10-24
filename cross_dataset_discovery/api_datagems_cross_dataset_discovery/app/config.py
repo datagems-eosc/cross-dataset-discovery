@@ -9,10 +9,10 @@ class Settings(BaseSettings):
     )
 
     # OIDC Authentication
-    OOIDC_ISSUER_URL = os.getenv(
+    OOIDC_ISSUER_URL: str = os.getenv(
         "OIDC_ISSUER_URL", "https://datagems-dev.scayle.es/oauth/realms/dev"
     )
-    OIDC_AUDIENCE = os.getenv("OIDC_AUDIENCE", "cross-dataset-discovery-api")
+    OIDC_AUDIENCE: str = os.getenv("OIDC_AUDIENCE", "cross-dataset-discovery-api")
     GATEWAY_API_URL: str = os.getenv(
         "GATEWAY_API_URL", "https://datagems-dev.scayle.es"
     )
