@@ -1,6 +1,4 @@
-from typing import List
-
-import httpx
+import psycopg2
 import structlog
 from api_datagems_cross_dataset_discovery.app.config import settings
 from api_datagems_cross_dataset_discovery.app.exceptions import (
@@ -9,172 +7,67 @@ from api_datagems_cross_dataset_discovery.app.exceptions import (
 from api_datagems_cross_dataset_discovery.app.logging_config import (
     get_correlation_id,
 )
-from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
+from psycopg2 import sql
+from psycopg2.pool import SimpleConnectionPool
 
 logger = structlog.get_logger(__name__)
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-_oidc_config = None
-_jwks_keys = None
+
+connection_pool: SimpleConnectionPool | None = None
 
 
-async def get_oidc_config():
-    global _oidc_config
-    if _oidc_config is None:
-        try:
-            async with httpx.AsyncClient() as client:
-                response = await client.get(settings.OIDC_CONFIG_URL)
-                response.raise_for_status()
-                _oidc_config = response.json()
-        except httpx.HTTPStatusError as e:
-            logger.error(
-                "Failed to fetch OIDC configuration due to HTTP error",
-                url=str(e.request.url),
-                status_code=e.response.status_code,
-                response=e.response.text,
-            )
-            try:
-                payload = e.response.json()
-            except Exception:
-                payload = e.response.text
-            raise FailedDependencyException(
-                source="OIDCProvider",
-                status_code=e.response.status_code,
-                correlation_id=get_correlation_id(),
-                payload=payload,
-                detail="Authentication service returned an error.",
-            )
-        except httpx.RequestError as e:
-            logger.error(
-                "Failed to fetch OIDC configuration due to network error",
-                url=settings.OIDC_CONFIG_URL,
-                error=str(e),
-            )
-            raise FailedDependencyException(
-                source="OIDCProvider",
-                status_code=503,
-                correlation_id=get_correlation_id(),
-                payload={"error": f"Network error: {type(e).__name__}"},
-                detail="Authentication service is unavailable.",
-            )
-    return _oidc_config
+def get_db_connection():
+    """Dependency to get a database connection from the pool."""
+    if connection_pool is None:
+        logger.error("Database connection requested but pool is not available.")
+        raise FailedDependencyException(
+            source="Database",
+            status_code=503,
+            detail="Database connection pool is not available.",
+            correlation_id=get_correlation_id(),
+        )
+
+    conn = None
+    try:
+        conn = connection_pool.getconn()
+        yield conn
+    finally:
+        if conn:
+            connection_pool.putconn(conn)
 
 
-async def get_jwks_keys():
-    """Fetches and caches the JSON Web Key Set (JWKS) containing public keys."""
-    global _jwks_keys
-    if _jwks_keys is None:
-        oidc_config = await get_oidc_config()
-        jwks_uri = oidc_config.get("jwks_uri")
-        if not jwks_uri:
-            raise FailedDependencyException(
-                source="OIDCProvider",
-                status_code=500,
-                detail="jwks_uri not found in OIDC config.",
-                correlation_id=get_correlation_id(),
-            )
-
-        try:
-            async with httpx.AsyncClient() as client:
-                response = await client.get(jwks_uri)
-                response.raise_for_status()
-                _jwks_keys = response.json()
-        except httpx.HTTPStatusError as e:
-            logger.error(
-                "Failed to fetch JWKS keys due to HTTP error",
-                url=str(e.request.url),
-                status_code=e.response.status_code,
-                response=e.response.text,
-            )
-            try:
-                payload = e.response.json()
-            except Exception:
-                payload = e.response.text
-            raise FailedDependencyException(
-                source="OIDCProvider",
-                status_code=e.response.status_code,
-                correlation_id=get_correlation_id(),
-                payload=payload,
-                detail="Could not fetch public keys for token validation.",
-            )
-        except httpx.RequestError as e:
-            logger.error(
-                "Failed to fetch JWKS keys due to network error",
-                url=jwks_uri,
-                error=str(e),
-            )
-            raise FailedDependencyException(
-                source="OIDCProvider",
-                status_code=503,
-                correlation_id=get_correlation_id(),
-                payload={"error": f"Network error: {type(e).__name__}"},
-                detail="Could not fetch public keys for token validation.",
-            )
-    return _jwks_keys
-
-
-async def get_current_user_claims(token: str = Depends(oauth2_scheme)) -> dict:
+def check_database_schema(conn):
     """
-    A FastAPI dependency that validates the JWT and returns its claims.
-    This will be applied to protected endpoints.
+    Checks if the database is connected, the required table exists,
+    and all necessary columns are present in the table.
+    Raises an exception if any check fails.
     """
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
+    required_columns = {
+        "content",
+        "use_case",
+        "source",
+        "source_id",
+        "chunk_id",
+        "language",
+        "ts_content",
+        "embedding",
+    }
 
     try:
-        keys = await get_jwks_keys()
-        payload = jwt.decode(
-            token,
-            keys,
-            algorithms=["RS256"],
-            audience=settings.OIDC_AUDIENCE,
-            issuer=settings.OIDC_ISSUER_URL,
-        )
-        return payload
-    except JWTError as e:
-        logger.warning("JWT validation failed", error=str(e))
-        raise credentials_exception
-    except Exception as e:
-        logger.error(
-            "An unexpected error occurred during token validation", error=str(e)
-        )
-        raise credentials_exception
-
-
-def require_role(required_roles: List[str]):
-    """
-    A FastAPI dependency that checks if the user has at least one of the required roles.
-    """
-
-    def role_checker(claims: dict = Depends(get_current_user_claims)) -> dict:
-        # this implementation  aims to check not only for user but for dg_user as well for the swagger
-        user_roles = set(claims.get("realm_access", {}).get("roles", []))
-
-        # Check for any intersection between the user's roles and the required roles
-        if not user_roles.intersection(required_roles):
-            log_context = {
-                "required_roles": required_roles,
-                "UserId": claims.get("sub"),
-                "user_roles": list(user_roles),
-            }
-            client_id = claims.get("clientid")
-            if client_id:
-                log_context["ClientId"] = client_id
-
-            logger.warning(
-                "Authorization failed: User missing any of the required roles",
-                **log_context,
+        with conn.cursor() as cur:
+            query = sql.SQL("SELECT 1 FROM {table} LIMIT 1;").format(
+                table=sql.Identifier(settings.TABLE_NAME)
             )
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"User does not have any of the required roles: {', '.join(required_roles)}.",
+            cur.execute(query)
+
+            cur.execute(
+                "SELECT column_name FROM information_schema.columns WHERE table_name = %s;",
+                (settings.TABLE_NAME,),
             )
-
-        # If the check passes, return the claims for use in the endpoint
-        return claims
-
-    return role_checker
+            existing_columns = {row[0] for row in cur.fetchall()}
+            missing_columns = required_columns - existing_columns
+            if missing_columns:
+                raise ValueError(
+                    f"Schema validation failed. Missing columns in table '{settings.TABLE_NAME}': {', '.join(missing_columns)}"
+                )
+    except psycopg2.Error as e:
+        raise ConnectionError(f"Database check failed: {e}") from e
