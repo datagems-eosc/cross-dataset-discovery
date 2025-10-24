@@ -142,9 +142,10 @@ def read_root():
 
 
 @app.post("/search/", response_model=SearchResponse)
-def perform_search(
+async def perform_search(
     request: SearchRequest,
     claims: dict = Depends(security.require_role(["user", "dg_user"])),
+    token: str = Depends(security.oauth2_scheme),  # Add dependency to get the raw token
 ):
     start_time = time.time()
     user_subject = claims.get("sub")
@@ -160,34 +161,35 @@ def perform_search(
         )
 
     try:
-        # Prepare filters for the component based on the request
+        authorized_dataset_ids = await security.get_authorized_dataset_ids(token)
+
         search_filters = {}
         if request.dataset_ids:
             log = log.bind(dataset_ids=request.dataset_ids)
-            search_filters["source"] = request.dataset_ids
+            allowed_to_search = set(request.dataset_ids).intersection(
+                authorized_dataset_ids
+            )
+            if not allowed_to_search:
+                log.warning(
+                    "User requested datasets they are not authorized for. Returning empty results."
+                )
+                return SearchResponse(query_time=0, results=[])
+            search_filters["source"] = list(allowed_to_search)
 
-        # The component expects a list of queries and returns a list of lists of results
         search_results_batch: List[List[RetrievalResult]] = searcher.search(
             nlqs=[request.query],
             output_path=settings.INDEX_PATH,
             k=request.k,
-            filters=search_filters,  # Pass the filters
+            filters=search_filters,
         )
 
-        # We only sent one query, so we only care about the first list of results
         component_results = search_results_batch[0]
         log.info(f"Component returned {len(component_results)} results.")
 
-        # Authorize and transform results for the API response
-        user_permissions = set(claims.get("datasets", []))
         authorized_results = []
         for result in component_results:
-            # Metadata is in result.item.metadata
-            use_case = result.item.metadata.get("use_case")
-            required_permission = f"/dataset/group/{use_case}/search"
-
-            if required_permission in user_permissions:
-                # Map from RetrievalResult to API_SearchResult
+            dataset_id = result.item.metadata.get("source")
+            if dataset_id in authorized_dataset_ids:
                 api_result = API_SearchResult.model_validate(
                     {
                         **result.item.metadata,
@@ -199,7 +201,7 @@ def perform_search(
             else:
                 log.warning(
                     "Result filtered due to missing permission",
-                    required_permission=required_permission,
+                    dataset_id=dataset_id,
                     source_id=result.item.metadata.get("source_id"),
                 )
 

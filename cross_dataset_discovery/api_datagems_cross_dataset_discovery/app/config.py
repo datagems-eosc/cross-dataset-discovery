@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+import os
 
 
 class Settings(BaseSettings):
@@ -8,10 +9,13 @@ class Settings(BaseSettings):
     )
 
     # OIDC Authentication
-    OIDC_ISSUER_URL: str = (
-        "https://datagems-dev.scayle.es/oauth/realms/dev"  # should be moved to .env
+    OOIDC_ISSUER_URL = os.getenv(
+        "OIDC_ISSUER_URL", "https://datagems-dev.scayle.es/oauth/realms/dev"
     )
-    OIDC_AUDIENCE: str = "cross-dataset-discovery-api"
+    OIDC_AUDIENCE = os.getenv("OIDC_AUDIENCE", "cross-dataset-discovery-api")
+    GATEWAY_API_URL: str = os.getenv(
+        "GATEWAY_API_URL", "https://datagems-dev.scayle.es"
+    )
 
     @property
     def OIDC_CONFIG_URL(self) -> str:

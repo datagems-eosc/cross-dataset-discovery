@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Set
 
 import httpx
 import structlog
@@ -178,3 +178,44 @@ def require_role(required_roles: List[str]):
         return claims
 
     return role_checker
+
+
+async def get_authorized_dataset_ids(token: str) -> Set[str]:
+    """
+    Calls the DataGEMS Gateway to get the dataset IDs the user can access.
+    """
+    api_url = f"{settings.GATEWAY_API_URL}/api/principal/me/context-grants/dataset"
+    headers = {"Authorization": f"Bearer {token}"}
+
+    log = logger.bind(gateway_url=api_url)
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(api_url, headers=headers)
+            response.raise_for_status()
+
+            context_grants = response.json()
+            # The API returns a list of grant objects. We need the 'targetId' from each.
+            dataset_ids = {
+                grant["targetId"] for grant in context_grants if "targetId" in grant
+            }
+
+            log.info(
+                "Successfully fetched user dataset permissions.", count=len(dataset_ids)
+            )
+            return dataset_ids
+
+    except httpx.HTTPStatusError as e:
+        log.error(
+            "Gateway returned an error when fetching dataset permissions.",
+            status_code=e.response.status_code,
+            response=e.response.text,
+        )
+        # Return an empty set on failure to prevent exposing data.
+        return set()
+    except Exception as e:
+        log.error(
+            "An unexpected error occurred while fetching dataset permissions.",
+            error=str(e),
+        )
+        return set()
