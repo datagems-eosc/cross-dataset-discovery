@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     )
     OIDC_AUDIENCE: str = os.getenv("OIDC_AUDIENCE", "cross-dataset-discovery-api")
     GATEWAY_API_URL: str = os.getenv(
-        "GATEWAY_API_URL", "https://datagems-dev.scayle.es/dg-app-api"
+        "GATEWAY_API_URL", "https://datagems-dev.scayle.es"
     )
 
     @property
