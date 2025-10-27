@@ -13,6 +13,7 @@ The Cross-Dataset Discovery Service is a self-contained application designed to 
 ## Request Flow
 
 A typical search request follows this path:
+
 1.  A user sends a `POST /search/` request with a valid JWT.
 2.  The Security Layer validates the token and checks for the required user roles.
 3.  The service calls the DataGEMS Gateway to get the list of datasets the user is authorized to see.
