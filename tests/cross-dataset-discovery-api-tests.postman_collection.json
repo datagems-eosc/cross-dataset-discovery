@@ -1,0 +1,243 @@
+{
+  "info": {
+    "_exporter_id": "28553076",
+    "_postman_id": "a1cb513e-5ae0-4e40-8fce-c3f15e62657c",
+    "name": "DataGEMS Cross-Dataset Discovery",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    pm.test(\"Successful healthcheck\", () => {",
+              "        pm.expect(pm.response.code).to.eql(200);",
+              "        const body = pm.response.json();",
+              "        pm.expect(body.status).to.eql('ok');",
+              "    });",
+              "}",
+              "else {",
+              "    pm.test(\"Failed in healthcheck\", () => {",
+              "        pm.expect(pm.response.code).to.eql(200);",
+              "    })",
+              "    pm.execution.setNextRequest(null);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "name": "Health Check",
+      "request": {
+        "header": [],
+        "method": "GET",
+        "url": {
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "health"
+          ],
+          "raw": "{{baseUrl}}/health"
+        }
+      },
+      "response": []
+    },
+    {
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    pm.test(\"Successfully acquired access token\", () => {",
+              "        pm.expect(pm.response.code).to.eql(200);",
+              "    });",
+              "",
+              "    var resp = pm.response.json();",
+              "",
+              "    pm.collectionVariables.set(\"userAccessToken\", resp.access_token);",
+              "}",
+              "else {",
+              "    pm.test(\"Failed to acquire access token\", () => {",
+              "        pm.expect(pm.response.code).to.eql(200);",
+              "    })",
+              "    pm.execution.setNextRequest(null);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "name": "Get User Access Token",
+      "request": {
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            {
+              "key": "grant_type",
+              "type": "text",
+              "value": "password"
+            },
+            {
+              "key": "client_id",
+              "type": "text",
+              "value": "{{clientId}}"
+            },
+            {
+              "key": "username",
+              "type": "text",
+              "value": "{{userName}}"
+            },
+            {
+              "key": "password",
+              "type": "text",
+              "value": "{{userPass}}"
+            },
+            {
+              "key": "scope",
+              "type": "text",
+              "value": "{{scope}}"
+            }
+          ]
+        },
+        "header": [],
+        "method": "POST",
+        "url": {
+          "host": [
+            "{{baseUrlIdp}}"
+          ],
+          "path": [
+            "realms",
+            "dev",
+            "protocol",
+            "openid-connect",
+            "token"
+          ],
+          "raw": "{{baseUrlIdp}}/realms/dev/protocol/openid-connect/token"
+        }
+      },
+      "response": []
+    },
+    {
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    pm.test(\"Successful search request\", () => {",
+              "        pm.expect(pm.response.code).to.eql(200);",
+              "        const body = pm.response.json();",
+              "        pm.expect(body).to.have.property('results');",
+              "        pm.expect(body.results).to.be.an('array');",
+              "    });",
+              "}",
+              "else {",
+              "    pm.test(\"Failed search request\", () => {",
+              "        pm.expect(pm.response.code).to.eql(200);",
+              "    })",
+              "    pm.execution.setNextRequest(null);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "name": "Perform Search - Valid Request",
+      "request": {
+        "auth": {
+          "bearer": [
+            {
+              "key": "token",
+              "type": "string",
+              "value": "{{userAccessToken}}"
+            }
+          ],
+          "type": "bearer"
+        },
+        "body": {
+          "mode": "raw",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          },
+          "raw": "{\n    \"query\": \"what is the rule for partial integration?\",\n    \"k\": 5,\n    \"dataset_ids\": null\n}"
+        },
+        "header": [],
+        "method": "POST",
+        "url": {
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "search",
+            ""
+          ],
+          "raw": "{{baseUrl}}/search/"
+        }
+      },
+      "response": []
+    },
+    {
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Request should be rejected as bad request\", () => {",
+              "    pm.expect(pm.response.code).to.eql(400);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "name": "Perform Search - Bad Request (Empty dataset_ids)",
+      "request": {
+        "auth": {
+          "bearer": [
+            {
+              "key": "token",
+              "type": "string",
+              "value": "{{userAccessToken}}"
+            }
+          ],
+          "type": "bearer"
+        },
+        "body": {
+          "mode": "raw",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          },
+          "raw": "{\n    \"query\": \"test query\",\n    \"k\": 5,\n    \"dataset_ids\": []\n}"
+        },
+        "header": [],
+        "method": "POST",
+        "url": {
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "search",
+            ""
+          ],
+          "raw": "{{baseUrl}}/search/"
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "userAccessToken",
+      "value": ""
+    }
+  ]
+}

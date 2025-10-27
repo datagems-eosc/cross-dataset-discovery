@@ -1,0 +1,43 @@
+name: "Test Scenario (On-Demand)"
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Repository tag to test'
+        required: true
+        default: 'main'
+
+jobs:
+  api-tests:
+    name: API Test Scenario
+    runs-on: ubuntu-latest
+
+    env:
+      TEST_DEV_BASEURL: ${{ secrets.TEST_DEV_BASEURL }}
+      TEST_DEV_BASEURLIDP: ${{ secrets.TEST_DEV_BASEURLIDP }}
+      TEST_DEV_CLIENTID: ${{ secrets.TEST_DEV_CLIENTID }}
+      TEST_DEV_SCOPE: ${{ secrets.TEST_DEV_SCOPE }}
+      TEST_DEV_USERNAME: ${{ secrets.TEST_DEV_USERNAME }}
+      TEST_DEV_USERPASS: ${{ secrets.TEST_DEV_USERPASS }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag }}
+
+      - name: Run Newman CLI reporter
+        run: |
+          set -o pipefail
+          docker run --rm \
+            -v "${{ github.workspace }}:/etc/newman" \
+            postman/newman:6-ubuntu \
+            run tests/cross-dataset-discovery-api-tests.postman_collection.json \
+            --env-var "baseUrl=${{ env.TEST_DEV_BASEURL }}" \
+            --env-var "baseUrlIdp=${{ env.TEST_DEV_BASEURLIDP }}" \
+            --env-var "userName=${{ env.TEST_DEV_USERNAME }}" \
+            --env-var "userPass=${{ env.TEST_DEV_USERPASS }}" \
+            --env-var "clientId=${{ env.TEST_DEV_CLIENTID }}" \
+            --env-var "scope=${{ env.TEST_DEV_SCOPE }}" \
+            --reporters cli,emojitrain
