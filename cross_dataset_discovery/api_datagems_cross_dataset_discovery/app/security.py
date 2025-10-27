@@ -19,45 +19,6 @@ _oidc_config = None
 _jwks_keys = None
 
 
-async def exchange_token(subject_token: str) -> str:
-    """
-    Exchanges the user's incoming token for a new token with the Gateway API audience.
-    """
-    token_url = f"{settings.OIDC_ISSUER_URL}/protocol/openid-connect/token"
-
-    client_id = settings.OIDC_AUDIENCE  # This is 'cross-dataset-discovery-api'
-    client_secret = settings.IdpClientSecret
-
-    data = {
-        "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
-        "client_id": client_id,
-        "client_secret": client_secret,
-        "subject_token": subject_token,
-        "subject_token_type": "urn:ietf:params:oauth:token-type:access_token",
-        "requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
-        "audience": "dg-app-api",
-    }
-
-    async with httpx.AsyncClient() as client:
-        try:
-            response = await client.post(token_url, data=data)
-            response.raise_for_status()
-            new_token_data = response.json()
-            return new_token_data["access_token"]
-        except httpx.HTTPStatusError as e:
-            logger.error(
-                "Failed to exchange token for Gateway API",
-                status_code=e.response.status_code,
-                response=e.response.text,
-            )
-            raise FailedDependencyException(
-                source="TokenExchange",
-                status_code=e.response.status_code,
-                detail="Could not acquire authorization token for downstream service.",
-                correlation_id=get_correlation_id(),
-            )
-
-
 async def get_oidc_config():
     global _oidc_config
     if _oidc_config is None:
@@ -221,13 +182,12 @@ def require_role(required_roles: List[str]):
 
 async def get_authorized_dataset_ids(token: str) -> Set[str]:
     """
-    Exchanges the token and calls the DataGEMS Gateway to get the dataset IDs the user can access.
+    Calls the DataGEMS Gateway using the user's token to get the dataset IDs they can access.
     """
     log = logger.bind()
     try:
-        gateway_token = await exchange_token(token)
         api_url = f"{settings.GATEWAY_API_URL}/api/principal/me/context-grants"
-        headers = {"Authorization": f"Bearer {gateway_token}"}
+        headers = {"Authorization": f"Bearer {token}"}
 
         log = log.bind(gateway_url=api_url)
 
@@ -240,7 +200,8 @@ async def get_authorized_dataset_ids(token: str) -> Set[str]:
                 grant["targetId"]
                 for grant in context_grants
                 if grant.get("targetType") == 0
-                and "targetId" in grant  # targetType 0 is 'dataset'
+                and "search" in grant.get("role", "")
+                and "targetId" in grant
             }
 
             log.info(
