@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     DB_CONNECTION_STRING: str
     TABLE_NAME: str = "your_table_name"  # Provide a default or load from env
 
+    IdpClientSecret: str
+
     # Application & Search Index
     ROOT_PATH: str = ""
     INDEX_PATH: str = "./search_index"  # Path for the component's index artifacts
