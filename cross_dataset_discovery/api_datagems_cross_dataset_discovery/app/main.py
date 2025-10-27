@@ -161,20 +161,21 @@ async def perform_search(
         )
 
     try:
-        authorized_dataset_ids = await security.get_authorized_dataset_ids(token)
+        # authorized_dataset_ids = await security.get_authorized_dataset_ids(token)
 
         search_filters = {}
         if request.dataset_ids:
             log = log.bind(dataset_ids=request.dataset_ids)
-            allowed_to_search = set(request.dataset_ids).intersection(
-                authorized_dataset_ids
-            )
-            if not allowed_to_search:
-                log.warning(
-                    "User requested datasets they are not authorized for. Returning empty results."
-                )
-                return SearchResponse(query_time=0, results=[])
-            search_filters["source"] = list(allowed_to_search)
+            # allowed_to_search = set(request.dataset_ids).intersection(
+            #    authorized_dataset_ids
+            # )
+            # if not allowed_to_search:
+            #    log.warning(
+            #        "User requested datasets they are not authorized for. Returning empty results."
+            #    )
+            #    return SearchResponse(query_time=0, results=[])
+            # search_filters["source"] = list(allowed_to_search)
+            search_filters["source"] = request.dataset_ids  # should be removed
 
         search_results_batch: List[List[RetrievalResult]] = searcher.search(
             nlqs=[request.query],
@@ -188,8 +189,9 @@ async def perform_search(
 
         authorized_results = []
         for result in component_results:
-            dataset_id = result.item.metadata.get("source")
-            if dataset_id in authorized_dataset_ids:
+            # dataset_id = result.item.metadata.get("source")
+            # if dataset_id in authorized_dataset_ids:
+            if True:
                 api_result = API_SearchResult.model_validate(
                     {
                         **result.item.metadata,
@@ -201,7 +203,7 @@ async def perform_search(
             else:
                 log.warning(
                     "Result filtered due to missing permission",
-                    dataset_id=dataset_id,
+                    # dataset_id=dataset_id,
                     source_id=result.item.metadata.get("source_id"),
                 )
 
