@@ -1,0 +1,74 @@
+site_name: Cross-Dataset Discovery Service
+site_url: https://datagems-eosc.github.io/cross-dataset-discovery/
+repo_url: https://github.com/datagems-eosc/cross-dataset-discovery/
+
+nav:
+  - Overview: index.md
+  - System:
+    - Architecture: architecture.md
+    - Security: security.md
+    - Datastores: datastore.md
+  - API:
+    - Overview: api-overview.md
+    - Status & Error Codes: error-codes.md
+    - OpenAPI Specification: openapi.md
+  - Setup & Monitoring:
+    - Automations: automations.md
+    - Deployment: deployment.md
+    - Configuration: configuration.md
+    - Logging & Accounting: logging.md
+    - Maintenance: maintenance.md
+  - Developer Guides:
+    - Onboarding (Adding Features): onboarding.md
+    - Quality Assurance (Evaluation): qa.md
+    - FAQ & Known Issues: faq.md
+  - License: license.md
+  - DataGEMS Home: https://datagems-eosc.github.io/
+
+theme:
+  name: 'material'
+  favicon: images/favicon.jpg
+  logo: images/datagems-portal-icon.png
+  icon:
+    repo: fontawesome/brands/github
+  custom_dir: overrides
+  features:
+    - navigation.path
+    - navigation.top
+
+extra_css:
+  - stylesheets/custom-footer.css
+  - stylesheets/mkdocsoad.css
+
+docs_dir: source
+
+plugins:
+  - search
+  - mike
+  - neoteroi.mkdocsoad:
+      use_pymdownx: true
+
+markdown_extensions:
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - toc:
+      permalink: true
+
+extra:
+  version:
+    provider: mike
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/datagems-eosc/
+    - icon: fontawesome/brands/instagram
+      link: https://www.instagram.com/datagems_eosc
+    - icon: fontawesome/brands/x-twitter
+      link: https://x.com/datagems_eosc
+    - icon: fontawesome/brands/youtube
+      link: https://www.youtube.com/@DataGEMS-65n
+    - icon: fontawesome/brands/linkedin
+      link: https://www.linkedin.com/company/eosc-datagems
+    - icon: fontawesome/brands/facebook
+      link: https://www.facebook.com/datagems.eosc/

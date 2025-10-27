@@ -1,0 +1,88 @@
+{
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          ""
+        ],
+        "packages": {},
+        "requests": {},
+        "type": "text/javascript"
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "exec": [
+          ""
+        ],
+        "packages": {},
+        "requests": {},
+        "type": "text/javascript"
+      }
+    }
+  ],
+  "info": {
+    "_exporter_id": "28553076",
+    "_postman_id": "a1cb513e-5ae0-4e40-8fce-c3f15e62657c",
+    "name": "DataGEMS Cross-Dataset Discovery",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "New Request",
+      "request": {
+        "header": [],
+        "method": "GET"
+      },
+      "response": []
+    },
+    {
+      "name": "New Request",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "auth": {
+          "bearer": [
+            {
+              "key": "token",
+              "type": "string",
+              "value": "{{YOUR_ACCESS_TOKEN}}"
+            }
+          ],
+          "type": "bearer"
+        },
+        "body": {
+          "mode": "raw",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          },
+          "raw": "{\n    \"query\": \"what is the rule for partial integration?\",\n    \"k\": 5,\n    \"dataset_ids\": null\n}"
+        },
+        "header": [],
+        "method": "GET",
+        "url": {
+          "host": [
+            "{{BASE_URL}}"
+          ],
+          "path": [
+            "search",
+            ""
+          ],
+          "raw": "{{BASE_URL}}/search/"
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "BASE_URL",
+      "value": ""
+    }
+  ]
+}
