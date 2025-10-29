@@ -1,0 +1,285 @@
+{
+  "components": {
+    "schemas": {
+      "API_SearchResult": {
+        "properties": {
+          "content": {
+            "description": "The main text content of the search result.",
+            "type": "string"
+          },
+          "dataset_id": {
+            "description": "The UUID of the source dataset.",
+            "type": "string"
+          },
+          "object_id": {
+            "description": "The UUID of the source object within the dataset.",
+            "type": "string"
+          },
+          "similarity": {
+            "description": "The relevance score of the result.",
+            "format": "float",
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "FailedDependencyMessage": {
+        "properties": {
+          "correlationId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "payload": {
+            "nullable": true,
+            "type": "object"
+          },
+          "source": {
+            "type": "string"
+          },
+          "statusCode": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "FailedDependencyResponse": {
+        "properties": {
+          "code": {
+            "example": 104,
+            "type": "integer"
+          },
+          "error": {
+            "example": "error communicating with underpinning service",
+            "type": "string"
+          },
+          "message": {
+            "$ref": "#/components/schemas/FailedDependencyMessage"
+          }
+        },
+        "type": "object"
+      },
+      "SearchRequest": {
+        "properties": {
+          "dataset_ids": {
+            "description": "A list of dataset UUIDs to restrict the search to.",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "k": {
+            "default": 5,
+            "description": "The number of results to return.",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "query": {
+            "description": "The natural language query string.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      },
+      "SearchResponse": {
+        "properties": {
+          "query_time": {
+            "description": "The time taken to process the query in milliseconds.",
+            "format": "float",
+            "type": "number"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/API_SearchResult"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "ValidationErrorDetail": {
+        "properties": {
+          "Key": {
+            "type": "string"
+          },
+          "Value": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "ValidationErrorResponse": {
+        "properties": {
+          "code": {
+            "example": 102,
+            "type": "integer"
+          },
+          "error": {
+            "example": "Validation Error",
+            "type": "string"
+          },
+          "message": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationErrorDetail"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "OAuth2Bearer": {
+        "bearerFormat": "JWT",
+        "description": "JWT token for authentication, obtained from the OIDC provider.",
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "contact": {
+      "name": "DataGEMS helpdesk",
+      "url": "https://datagems.eu/contact-us/"
+    },
+    "description": "The Cross-Dataset Discovery Service provides a secure API for performing natural language search queries across a pre-indexed collection of datasets.",
+    "license": {
+      "name": "EUPL-1.2 license",
+      "url": "https://interoperable-europe.ec.europa.eu/sites/default/files/custom-page/attachment/2020-03/EUPL-1.2%20EN.txt"
+    },
+    "termsOfService": "https://datagems.eu/terms",
+    "title": "DataGEMS Cross-Dataset Discovery Service",
+    "version": "v1"
+  },
+  "openapi": "3.0.3",
+  "paths": {
+    "/health": {
+      "get": {
+        "description": "Verifies the operational status of the API and its dependencies (Search Component, Database). Returns a 200 OK if all systems are healthy.",
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "example": "All dependencies are healthy.",
+                      "type": "string"
+                    },
+                    "status": {
+                      "example": "ok",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "424": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailedDependencyResponse"
+                }
+              }
+            },
+            "description": "Failed Dependency"
+          }
+        },
+        "summary": "Health Check",
+        "tags": [
+          "Monitoring"
+        ]
+      }
+    },
+    "/search/": {
+      "post": {
+        "description": "Submits a natural language query and returns a ranked list of relevant results. The search can be optionally filtered to a specific set of datasets. Results are always filtered based on the user's access permissions.",
+        "operationId": "perform_search_search__post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "401": {
+            "description": "Unauthorized - Invalid Token"
+          },
+          "403": {
+            "description": "Forbidden - Insufficient Permissions"
+          },
+          "424": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailedDependencyResponse"
+                }
+              }
+            },
+            "description": "Failed Dependency"
+          }
+        },
+        "security": [
+          {
+            "OAuth2Bearer": []
+          }
+        ],
+        "summary": "Perform a Search Query",
+        "tags": [
+          "Search"
+        ]
+      }
+    }
+  },
+  "servers": [
+    {
+      "description": "Default server path when running behind a reverse proxy",
+      "url": "/cdd"
+    }
+  ],
+  "tags": [
+    {
+      "description": "Endpoints for performing search operations.",
+      "name": "Search"
+    },
+    {
+      "description": "Endpoints for monitoring the service health.",
+      "name": "Monitoring"
+    }
+  ]
+}
