@@ -80,3 +80,4 @@ A successful test run will produce the following summary table in the GitHub Act
 │ total data received: 6.9kB (approx)                                │
 ├────────────────────────────────────────────────────────────────────┤
 │ average response time: 396ms [min: 147ms, max: 645ms, s.d.: 205ms] │
+```
