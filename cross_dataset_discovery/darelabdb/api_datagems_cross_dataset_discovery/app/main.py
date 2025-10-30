@@ -27,6 +27,7 @@ from darelabdb.api_datagems_cross_dataset_discovery.app.models import (
     SearchRequest,
     SearchResponse,
 )
+import os
 from darelabdb.nlp_retrieval.core.models import RetrievalResult
 from darelabdb.nlp_retrieval.retrievers.bm25_retriever import PyseriniRetriever
 from darelabdb.nlp_retrieval.searcher import Searcher
@@ -83,8 +84,12 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     lifespan=lifespan,
     title="Cross-Dataset Discovery API",
+    description="An API for performing cross-dataset discovery using a BM25 index.",
     version="1.0.0",
-    root_path=settings.ROOT_PATH,
+    openapi_url="/openapi.json",
+    docs_url="/swagger",
+    redoc_url="/redoc",
+    root_path=os.getenv("ROOT_PATH", ""),
 )
 
 
