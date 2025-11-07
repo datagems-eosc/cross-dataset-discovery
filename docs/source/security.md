@@ -20,7 +20,7 @@ If a user attempts to access an endpoint without the required role, the API will
 
 In addition to role-based access, the service enforces dataset-level permissions.
 
-Before executing a search, the API uses the user's token to call the DataGEMS Gateway's `/api/principal/me/context-grants` endpoint. This returns a list of all dataset IDs the user is permitted to access.
+Before executing a search, the API performs a token exchange and then calls the DataGEMS Gateway's `POST /api/principal/context-grants/query` endpoint. It requests all grants associated with roles like `dg_ds-browse` to get a list of all dataset IDs the user is permitted to access.
 
 - **Search Filtering:**
     - If a user's search request includes `dataset_ids`, the service intersects this list with the user's authorized datasets. The search is only performed on the datasets present in both lists.

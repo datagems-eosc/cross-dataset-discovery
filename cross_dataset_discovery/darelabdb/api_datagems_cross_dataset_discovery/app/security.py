@@ -232,7 +232,6 @@ async def _exchange_token_for_gateway(user_token: str) -> str | None:
 async def get_authorized_dataset_ids(token: str) -> Set[str]:
     """
     Calls the DataGEMS Gateway to get the dataset IDs a user can access.
-    It now performs a token exchange before making the call.
     """
     log = logger.bind()
 
@@ -244,21 +243,21 @@ async def get_authorized_dataset_ids(token: str) -> Set[str]:
         return set()
 
     try:
-        api_url = f"{settings.GATEWAY_API_URL}/api/principal/me/context-grants"
+        api_url = f"{settings.GATEWAY_API_URL}/api/principal/context-grants/query"
         headers = {"Authorization": f"Bearer {gateway_token}"}
+        payload = {"roles": ["dg_ds-browse"]}
 
-        log = log.bind(gateway_url=api_url)
+        log = log.bind(gateway_url=api_url, gateway_payload=payload)
 
         async with httpx.AsyncClient() as client:
-            response = await client.get(api_url, headers=headers)
+            response = await client.post(api_url, headers=headers, json=payload)
             response.raise_for_status()
 
             context_grants = response.json()
             dataset_ids = {
                 grant["targetId"]
                 for grant in context_grants
-                if grant.get("targetType") == 0
-                and "search" in grant.get("role", "")
+                if grant.get("targetType") == 0  # 0 indicates a dataset
                 and "targetId" in grant
             }
 
