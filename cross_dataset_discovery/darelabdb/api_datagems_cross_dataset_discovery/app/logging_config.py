@@ -99,13 +99,39 @@ def datagems_log_formatter(_, __, event_dict: EventDict) -> EventDict:
     return formatted_event
 
 
+def datagems_log_formatter_cf2(_, __, event_dict: EventDict) -> EventDict:
+    """
+    A structlog processor to format log entries into the json-cf-2 format.
+    """
+    logger_name = event_dict.get("logger")
+    if logger_name == "accounting":
+        event_dict["SourceContext"] = "accounting"
+    else:
+        event_dict["SourceContext"] = logger_name
+
+    event_dict["Timestamp"] = event_dict.pop("timestamp", None)
+    event_dict["Message"] = event_dict.pop("event", None)
+    level = event_dict.pop("log_level", "info")
+    event_dict["LogLevel"] = level.capitalize()
+
+    correlation_id_obj = event_dict.pop("correlation_id", None)
+    if callable(correlation_id_obj):
+        event_dict["DGCorrelationId"] = correlation_id_obj()
+    else:
+        event_dict["DGCorrelationId"] = correlation_id_obj
+
+    event_dict.pop("logger", None)
+
+    return event_dict
+
+
 def setup_logging():
     shared_processors: list[Processor] = [
         structlog.contextvars.merge_contextvars,
         structlog.stdlib.add_logger_name,
         structlog.stdlib.add_log_level,
         structlog.processors.TimeStamper(fmt="iso"),
-        datagems_log_formatter,
+        datagems_log_formatter_cf2,
     ]
     structlog.configure(
         processors=shared_processors

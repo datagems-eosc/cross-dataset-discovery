@@ -1,7 +1,7 @@
 import time
 from contextlib import asynccontextmanager
 from typing import List
-
+from datetime import datetime
 import psycopg2
 import structlog
 from darelabdb.api_datagems_cross_dataset_discovery.app import database, security
@@ -38,6 +38,7 @@ from psycopg2.pool import SimpleConnectionPool
 
 setup_logging()
 logger = structlog.get_logger(__name__)
+accounting_logger = structlog.get_logger("accounting")
 app_state = {}
 
 
@@ -152,11 +153,22 @@ def read_root():
 async def perform_search(
     request: SearchRequest,
     claims: dict = Depends(security.require_role(["user", "dg_user"])),
-    token: str = Depends(security.oauth2_scheme),  # Add dependency to get the raw token
+    token: str = Depends(security.oauth2_scheme),
 ):
     start_time = time.time()
     user_subject = claims.get("sub")
     log = logger.bind(query=request.query, k=request.k, UserId=user_subject)
+
+    accounting_logger.info(
+        "Search action performed",
+        UserId=user_subject,
+        Action="Search",
+        Resource="CrossDatasetDiscovery",
+        Type="+",
+        Value=1,
+        Measure="Unit",
+        Timestamp=datetime.utcnow().isoformat() + "Z",
+    )
 
     searcher: Searcher | None = app_state.get("searcher")
     if not searcher:
